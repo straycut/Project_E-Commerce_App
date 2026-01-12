@@ -36,6 +36,9 @@ namespace ProjectAffiliate
 	private: System::Windows::Forms::Label^ labelSandi;
 	private: System::Windows::Forms::Label^ labelNama;
 	private: System::Windows::Forms::Label^ label1;
+	private: System::Windows::Forms::CheckBox^ checkBox1;
+	private: System::Windows::Forms::CheckBox^ checkBox2;
+	private: System::Windows::Forms::CheckBox^ checkBox3;
 
 	private:
 		/// <summary>
@@ -53,6 +56,9 @@ namespace ProjectAffiliate
 			this->labelSandi = (gcnew System::Windows::Forms::Label());
 			this->labelNama = (gcnew System::Windows::Forms::Label());
 			this->label1 = (gcnew System::Windows::Forms::Label());
+			this->checkBox1 = (gcnew System::Windows::Forms::CheckBox());
+			this->checkBox2 = (gcnew System::Windows::Forms::CheckBox());
+			this->checkBox3 = (gcnew System::Windows::Forms::CheckBox());
 			this->SuspendLayout();
 			// 
 			// btnKembali
@@ -76,14 +82,14 @@ namespace ProjectAffiliate
 			// 
 			// textBox2
 			// 
-			this->textBox2->Location = System::Drawing::Point(104, 226);
+			this->textBox2->Location = System::Drawing::Point(104, 186);
 			this->textBox2->Name = L"textBox2";
 			this->textBox2->Size = System::Drawing::Size(171, 20);
 			this->textBox2->TabIndex = 11;
 			// 
 			// textBoxNama
 			// 
-			this->textBoxNama->Location = System::Drawing::Point(104, 154);
+			this->textBoxNama->Location = System::Drawing::Point(104, 131);
 			this->textBoxNama->Name = L"textBoxNama";
 			this->textBoxNama->Size = System::Drawing::Size(171, 20);
 			this->textBoxNama->TabIndex = 10;
@@ -91,16 +97,17 @@ namespace ProjectAffiliate
 			// labelSandi
 			// 
 			this->labelSandi->AutoSize = true;
-			this->labelSandi->Location = System::Drawing::Point(101, 210);
+			this->labelSandi->Location = System::Drawing::Point(101, 170);
 			this->labelSandi->Name = L"labelSandi";
 			this->labelSandi->Size = System::Drawing::Size(59, 13);
 			this->labelSandi->TabIndex = 9;
 			this->labelSandi->Text = L"Kata Sandi";
+			this->labelSandi->Click += gcnew System::EventHandler(this, &MyForm1::labelSandi_Click);
 			// 
 			// labelNama
 			// 
 			this->labelNama->AutoSize = true;
-			this->labelNama->Location = System::Drawing::Point(101, 137);
+			this->labelNama->Location = System::Drawing::Point(101, 114);
 			this->labelNama->Name = L"labelNama";
 			this->labelNama->Size = System::Drawing::Size(33, 13);
 			this->labelNama->TabIndex = 8;
@@ -115,11 +122,44 @@ namespace ProjectAffiliate
 			this->label1->TabIndex = 7;
 			this->label1->Text = L"Isi untuk daftar";
 			// 
+			// checkBox1
+			// 
+			this->checkBox1->AutoSize = true;
+			this->checkBox1->Location = System::Drawing::Point(104, 213);
+			this->checkBox1->Name = L"checkBox1";
+			this->checkBox1->Size = System::Drawing::Size(51, 17);
+			this->checkBox1->TabIndex = 14;
+			this->checkBox1->Text = L"Toko";
+			this->checkBox1->UseVisualStyleBackColor = true;
+			// 
+			// checkBox2
+			// 
+			this->checkBox2->AutoSize = true;
+			this->checkBox2->Location = System::Drawing::Point(159, 213);
+			this->checkBox2->Name = L"checkBox2";
+			this->checkBox2->Size = System::Drawing::Size(59, 17);
+			this->checkBox2->TabIndex = 15;
+			this->checkBox2->Text = L"afiliator";
+			this->checkBox2->UseVisualStyleBackColor = true;
+			// 
+			// checkBox3
+			// 
+			this->checkBox3->AutoSize = true;
+			this->checkBox3->Location = System::Drawing::Point(224, 213);
+			this->checkBox3->Name = L"checkBox3";
+			this->checkBox3->Size = System::Drawing::Size(76, 17);
+			this->checkBox3->TabIndex = 16;
+			this->checkBox3->Text = L"pelanggan";
+			this->checkBox3->UseVisualStyleBackColor = true;
+			// 
 			// MyForm1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(376, 372);
+			this->Controls->Add(this->checkBox3);
+			this->Controls->Add(this->checkBox2);
+			this->Controls->Add(this->checkBox1);
 			this->Controls->Add(this->btnKembali);
 			this->Controls->Add(this->btnDaftar);
 			this->Controls->Add(this->textBox2);
@@ -141,5 +181,7 @@ namespace ProjectAffiliate
 		// Tutup registration form dan kembali ke login form
 		this->Close();
 	}
-	};
+	private: System::Void labelSandi_Click(System::Object^ sender, System::EventArgs^ e) {
+	}
+};
 }

@@ -141,6 +141,7 @@ namespace ProjectAffiliate {
 			this->Controls->Add(this->label1);
 			this->Name = L"MyForm";
 			this->Text = L"Login";
+			this->Load += gcnew System::EventHandler(this, &MyForm::MyForm_Load);
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -156,5 +157,7 @@ namespace ProjectAffiliate {
 		// Tampilkan kembali login form setelah registration form ditutup
 		this->Show();
 	}
+private: System::Void MyForm_Load(System::Object^ sender, System::EventArgs^ e) {
+}
 };
 }

@@ -78,6 +78,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>sqlite3.h</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
@@ -107,6 +108,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>sqlite3.h</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
@@ -120,20 +122,33 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="loginForm.cpp" />
+    <ClCompile Include="C:\Users\artak\Downloads\ABDM\Compressed\sqlite-amalgamation-3510200\sqlite-amalgamation-3510200\shell.c" />
+    <ClCompile Include="mainForm.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="pageHome.cpp" />
     <ClCompile Include="registrationForm.cpp" />
+    <ClCompile Include="sqlite3.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="loginForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
+    <ClInclude Include="pageHome.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
     <ClInclude Include="registrationForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
+    <ClInclude Include="sqlite3.h" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="loginForm.resx">
       <DependentUpon>loginForm.h</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="pageHome.resx">
+      <DependentUpon>pageHome.h</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="registrationForm.resx">
       <DependentUpon>registrationForm.h</DependentUpon>

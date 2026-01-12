@@ -13,13 +13,25 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="sqlite">
+      <UniqueIdentifier>{391ca704-f175-4f09-912e-8f7c1c821c07}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="registrationForm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="loginForm.cpp">
+    <ClCompile Include="mainForm.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pageHome.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>sqlite</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\artak\Downloads\ABDM\Compressed\sqlite-amalgamation-3510200\sqlite-amalgamation-3510200\shell.c">
+      <Filter>sqlite</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -28,6 +40,12 @@
     </ClInclude>
     <ClInclude Include="registrationForm.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pageHome.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>sqlite</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
