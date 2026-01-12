@@ -122,14 +122,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C:\Users\artak\Downloads\ABDM\Compressed\sqlite-amalgamation-3510200\sqlite-amalgamation-3510200\shell.c" />
     <ClCompile Include="mainForm.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="pageHome.cpp" />
     <ClCompile Include="registrationForm.cpp" />
-    <ClCompile Include="sqlite3.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="loginForm.h">
@@ -141,7 +139,6 @@
     <ClInclude Include="registrationForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
-    <ClInclude Include="sqlite3.h" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="loginForm.resx">

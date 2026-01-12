@@ -10,12 +10,12 @@ namespace ProjectAffiliate {
 	using namespace System::Drawing;
 
 	/// <summary>
-	/// Summary for MyForm1
+	/// Summary for PageHome
 	/// </summary>
-	public ref class MyForm1 : public System::Windows::Forms::Form
+	public ref class PageHome : public System::Windows::Forms::Form
 	{
 	public:
-		MyForm1(void)
+		PageHome(void)
 		{
 			InitializeComponent();
 			//
@@ -27,7 +27,7 @@ namespace ProjectAffiliate {
 		/// <summary>
 		/// Clean up any resources being used.
 		/// </summary>
-		~MyForm1()
+		~PageHome()
 		{
 			if (components)
 			{
@@ -50,13 +50,13 @@ namespace ProjectAffiliate {
 		{
 			this->SuspendLayout();
 			// 
-			// MyForm1
+			// PageHome
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(721, 423);
-			this->Name = L"MyForm1";
-			this->Text = L"MyForm1";
+			this->Name = L"PageHome";
+			this->Text = L"PageHome";
 			this->ResumeLayout(false);
 
 		}
