@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ECommerce {
+namespace ECommerce{
 
 	using namespace System;
 	using namespace System::ComponentModel;
@@ -10,12 +10,12 @@ namespace ECommerce {
 	using namespace System::Drawing;
 
 	/// <summary>
-	/// Summary for PageHome
+	/// Summary for adminForm
 	/// </summary>
-	public ref class PageHome : public System::Windows::Forms::Form
+	public ref class adminForm : public System::Windows::Forms::Form
 	{
 	public:
-		PageHome(void)
+		adminForm(void)
 		{
 			InitializeComponent();
 			//
@@ -27,7 +27,7 @@ namespace ECommerce {
 		/// <summary>
 		/// Clean up any resources being used.
 		/// </summary>
-		~PageHome()
+		~adminForm()
 		{
 			if (components)
 			{
@@ -50,19 +50,19 @@ namespace ECommerce {
 		{
 			this->SuspendLayout();
 			// 
-			// PageHome
+			// adminForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(721, 423);
-			this->Name = L"PageHome";
-			this->Text = L"PageHome";
-			this->Load += gcnew System::EventHandler(this, &PageHome::PageHome_Load);
+			this->ClientSize = System::Drawing::Size(284, 261);
+			this->Name = L"adminForm";
+			this->Text = L"Admin";
+			this->Load += gcnew System::EventHandler(this, &adminForm::adminForm_Load);
 			this->ResumeLayout(false);
 
 		}
 #pragma endregion
-	private: System::Void PageHome_Load(System::Object^ sender, System::EventArgs^ e) {
+	private: System::Void adminForm_Load(System::Object^ sender, System::EventArgs^ e) {
 	}
 	};
 }

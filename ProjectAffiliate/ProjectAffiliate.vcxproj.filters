@@ -21,7 +21,16 @@
     <ClCompile Include="mainForm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pageHome.cpp">
+    <ClCompile Include="adminForm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="customerForm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="merchantForm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="courierForm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,7 +41,16 @@
     <ClInclude Include="registrationForm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pageHome.h">
+    <ClInclude Include="adminForm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="customerForm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="merchantForm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="courierForm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -123,18 +123,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="adminForm.cpp" />
+    <ClCompile Include="courierForm.cpp" />
+    <ClCompile Include="customerForm.cpp" />
     <ClCompile Include="mainForm.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </AdditionalIncludeDirectories>
     </ClCompile>
-    <ClCompile Include="pageHome.cpp" />
+    <ClCompile Include="merchantForm.cpp" />
     <ClCompile Include="registrationForm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="adminForm.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
+    <ClInclude Include="courierForm.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
+    <ClInclude Include="customerForm.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
     <ClInclude Include="loginForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
-    <ClInclude Include="pageHome.h">
+    <ClInclude Include="merchantForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
     <ClInclude Include="registrationForm.h">
@@ -142,11 +154,20 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="adminForm.resx">
+      <DependentUpon>adminForm.h</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="courierForm.resx">
+      <DependentUpon>courierForm.h</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="customerForm.resx">
+      <DependentUpon>customerForm.h</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="loginForm.resx">
       <DependentUpon>loginForm.h</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="pageHome.resx">
-      <DependentUpon>pageHome.h</DependentUpon>
+    <EmbeddedResource Include="merchantForm.resx">
+      <DependentUpon>merchantForm.h</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="registrationForm.resx">
       <DependentUpon>registrationForm.h</DependentUpon>
