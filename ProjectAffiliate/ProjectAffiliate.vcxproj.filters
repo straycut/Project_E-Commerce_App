@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="db_Ecommerce">
+      <UniqueIdentifier>{d5ea8170-21eb-4fbe-b0f7-10739c1acb45}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="registrationForm.cpp">
@@ -53,5 +56,16 @@
     <ClInclude Include="courierForm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\products.txt">
+      <Filter>db_Ecommerce</Filter>
+    </Text>
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\transactions.txt">
+      <Filter>db_Ecommerce</Filter>
+    </Text>
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\users.txt">
+      <Filter>db_Ecommerce</Filter>
+    </Text>
   </ItemGroup>
 </Project>

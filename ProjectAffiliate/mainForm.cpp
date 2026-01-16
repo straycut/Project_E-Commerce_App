@@ -11,7 +11,7 @@ int main(array<System::String^>^ args)
 	Application::EnableVisualStyles();
 	Application::SetCompatibleTextRenderingDefault(false);
 	// Create the main window and run it
-	ECommerce::MyForm form;
-	Application::Run(% form);
+	ECommerce::loginF^ form = gcnew ECommerce::loginF();
+	Application::Run(form);
 	return 0;
 }

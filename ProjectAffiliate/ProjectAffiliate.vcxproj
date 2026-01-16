@@ -173,6 +173,11 @@
       <DependentUpon>registrationForm.h</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\products.txt" />
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\transactions.txt" />
+    <Text Include="C:\Users\artak\source\repos\Project_E-Commerce_App\ProjectAffiliate\users.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
