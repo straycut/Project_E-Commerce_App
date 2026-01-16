@@ -1,7 +1,7 @@
 #pragma once
 #include "registrationForm.h"
 
-namespace ProjectAffiliate {
+namespace ECommerce {
 
 	using namespace System;
 	using namespace System::ComponentModel;
@@ -11,12 +11,12 @@ namespace ProjectAffiliate {
 	using namespace System::Drawing;
 
 	/// <summary>
-	/// Summary for MyForm
+	/// Summary for loginF
 	/// </summary>
-	public ref class MyForm : public System::Windows::Forms::Form
+	public ref class loginF : public System::Windows::Forms::Form
 	{
 	public:
-		MyForm(void)
+		loginF(void)
 		{
 			InitializeComponent();
 			//
@@ -28,7 +28,7 @@ namespace ProjectAffiliate {
 		/// <summary>
 		/// Clean up any resources being used.
 		/// </summary>
-		~MyForm()
+		~loginF()
 		{
 			if (components)
 			{
@@ -116,7 +116,7 @@ namespace ProjectAffiliate {
 			this->btnDaftar->TabIndex = 5;
 			this->btnDaftar->Text = L"Daftar";
 			this->btnDaftar->UseVisualStyleBackColor = true;
-			this->btnDaftar->Click += gcnew System::EventHandler(this, &MyForm::btnDaftar_Click);
+			this->btnDaftar->Click += gcnew System::EventHandler(this, &loginF::btnDaftar_Click);
 			// 
 			// btnMasuk
 			// 
@@ -127,7 +127,7 @@ namespace ProjectAffiliate {
 			this->btnMasuk->Text = L"Masuk";
 			this->btnMasuk->UseVisualStyleBackColor = true;
 			// 
-			// MyForm
+			// loginF
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
@@ -139,9 +139,9 @@ namespace ProjectAffiliate {
 			this->Controls->Add(this->labelSandi);
 			this->Controls->Add(this->labelNama);
 			this->Controls->Add(this->label1);
-			this->Name = L"MyForm";
+			this->Name = L"loginF";
 			this->Text = L"Login";
-			this->Load += gcnew System::EventHandler(this, &MyForm::MyForm_Load);
+			this->Load += gcnew System::EventHandler(this, &loginF::loginF_Load);
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -149,7 +149,7 @@ namespace ProjectAffiliate {
 #pragma endregion
 	private: System::Void btnDaftar_Click(System::Object^ sender, System::EventArgs^ e) {
 		// Buat instance dari registrationForm
-		ProjectAffiliate::MyForm1^ registrationForm = gcnew ProjectAffiliate::MyForm1();
+		ECommerce::registerF^ registrationForm = gcnew ECommerce::registerF();
 		// Sembunyikan login form
 		/*this->Hide();*/
 		// Tampilkan registration form
@@ -157,7 +157,7 @@ namespace ProjectAffiliate {
 		// Tampilkan kembali login form setelah registration form ditutup
 		this->Show();
 	}
-private: System::Void MyForm_Load(System::Object^ sender, System::EventArgs^ e) {
+private: System::Void loginF_Load(System::Object^ sender, System::EventArgs^ e) {
 }
 };
 }

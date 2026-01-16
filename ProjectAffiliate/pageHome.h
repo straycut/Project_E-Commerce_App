@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ProjectAffiliate {
+namespace ECommerce {
 
 	using namespace System;
 	using namespace System::ComponentModel;
@@ -57,9 +57,12 @@ namespace ProjectAffiliate {
 			this->ClientSize = System::Drawing::Size(721, 423);
 			this->Name = L"PageHome";
 			this->Text = L"PageHome";
+			this->Load += gcnew System::EventHandler(this, &PageHome::PageHome_Load);
 			this->ResumeLayout(false);
 
 		}
 #pragma endregion
+	private: System::Void PageHome_Load(System::Object^ sender, System::EventArgs^ e) {
+	}
 	};
 }

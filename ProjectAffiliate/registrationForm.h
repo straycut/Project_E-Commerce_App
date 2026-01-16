@@ -1,15 +1,15 @@
 #pragma once
 
-namespace ProjectAffiliate
+namespace ECommerce
 {
 
 	/// <summary>
-	/// Summary for MyForm1
+	/// Summary for registerF
 	/// </summary>
-	public ref class MyForm1 : public System::Windows::Forms::Form
+	public ref class registerF : public System::Windows::Forms::Form
 	{
 	public:
-		MyForm1(void)
+		registerF(void)
 		{
 			InitializeComponent();
 			//
@@ -21,7 +21,7 @@ namespace ProjectAffiliate
 		/// <summary>
 		/// Clean up any resources being used.
 		/// </summary>
-		~MyForm1()
+		~registerF()
 		{
 			if (components)
 			{
@@ -69,7 +69,7 @@ namespace ProjectAffiliate
 			this->btnKembali->TabIndex = 13;
 			this->btnKembali->Text = L"Kembali";
 			this->btnKembali->UseVisualStyleBackColor = true;
-			this->btnKembali->Click += gcnew System::EventHandler(this, &MyForm1::btnKembali_Click);
+			this->btnKembali->Click += gcnew System::EventHandler(this, &registerF::btnKembali_Click);
 			// 
 			// btnDaftar
 			// 
@@ -102,7 +102,7 @@ namespace ProjectAffiliate
 			this->labelSandi->Size = System::Drawing::Size(59, 13);
 			this->labelSandi->TabIndex = 9;
 			this->labelSandi->Text = L"Kata Sandi";
-			this->labelSandi->Click += gcnew System::EventHandler(this, &MyForm1::labelSandi_Click);
+			this->labelSandi->Click += gcnew System::EventHandler(this, &registerF::labelSandi_Click);
 			// 
 			// labelNama
 			// 
@@ -152,7 +152,7 @@ namespace ProjectAffiliate
 			this->checkBox3->Text = L"pelanggan";
 			this->checkBox3->UseVisualStyleBackColor = true;
 			// 
-			// MyForm1
+			// registerF
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
@@ -167,15 +167,15 @@ namespace ProjectAffiliate
 			this->Controls->Add(this->labelSandi);
 			this->Controls->Add(this->labelNama);
 			this->Controls->Add(this->label1);
-			this->Name = L"MyForm1";
-			this->Text = L"MyForm1";
-			this->Load += gcnew System::EventHandler(this, &MyForm1::MyForm1_Load);
+			this->Name = L"registerF";
+			this->Text = L"Register";
+			this->Load += gcnew System::EventHandler(this, &registerF::registerF_Load);
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
 		}
 #pragma endregion
-	private: System::Void MyForm1_Load(System::Object^ sender, System::EventArgs^ e) {
+	private: System::Void registerF_Load(System::Object^ sender, System::EventArgs^ e) {
 	}
 	private: System::Void btnKembali_Click(System::Object^ sender, System::EventArgs^ e) {
 		// Tutup registration form dan kembali ke login form
