@@ -1,4 +1,5 @@
 #pragma once
+#include "DatabaseManager.h"
 
 namespace ECommerce {
 
@@ -10,51 +11,530 @@ using namespace System::Data;
 using namespace System::Drawing;
 
 /// <summary>
-/// Summary for merchantForm
+/// Merchant Dashboard - Manage products and view sales
 /// </summary>
 public
 ref class merchantForm : public System::Windows::Forms::Form {
 public:
+  int currentUserID;
+  String ^ currentUsername;
+
   merchantForm(void) {
     InitializeComponent();
-    //
-    // TODO: Add the constructor code here
-    //
+    currentUserID = 0;
+    currentUsername = "";
+  }
+
+  merchantForm(int userID, String ^ username) {
+    InitializeComponent();
+    currentUserID = userID;
+    currentUsername = username;
   }
 
 protected:
-  /// <summary>
-  /// Clean up any resources being used.
-  /// </summary>
   ~merchantForm() {
     if (components) {
       delete components;
     }
   }
 
+  // UI Controls
 private:
-  /// <summary>
-  /// Required designer variable.
-  /// </summary>
+  System::Windows::Forms::TabControl ^ tabControl;
+
+private:
+  System::Windows::Forms::TabPage ^ tabDashboard;
+
+private:
+  System::Windows::Forms::TabPage ^ tabProducts;
+
+private:
+  System::Windows::Forms::TabPage ^ tabSales;
+
+  // Dashboard controls
+private:
+  System::Windows::Forms::Label ^ lblTitle;
+
+private:
+  System::Windows::Forms::Label ^ lblTotalProducts;
+
+private:
+  System::Windows::Forms::Label ^ lblTotalSales;
+
+private:
+  System::Windows::Forms::Label ^ lblTotalIncome;
+
+private:
+  System::Windows::Forms::Button ^ btnRefreshDashboard;
+
+  // Products controls
+private:
+  System::Windows::Forms::Label ^ lblProductsTitle;
+
+private:
+  System::Windows::Forms::DataGridView ^ dgvProducts;
+
+private:
+  System::Windows::Forms::Button ^ btnRefreshProducts;
+
+private:
+  System::Windows::Forms::Button ^ btnAddProduct;
+
+private:
+  System::Windows::Forms::Button ^ btnEditProduct;
+
+private:
+  System::Windows::Forms::Button ^ btnDeleteProduct;
+
+  // Add/Edit Product panel
+private:
+  System::Windows::Forms::Panel ^ panelProduct;
+
+private:
+  System::Windows::Forms::Label ^ lblNamaProduk;
+
+private:
+  System::Windows::Forms::TextBox ^ txtNamaProduk;
+
+private:
+  System::Windows::Forms::Label ^ lblHarga;
+
+private:
+  System::Windows::Forms::TextBox ^ txtHarga;
+
+private:
+  System::Windows::Forms::Label ^ lblKomisi;
+
+private:
+  System::Windows::Forms::TextBox ^ txtKomisi;
+
+private:
+  System::Windows::Forms::Button ^ btnSaveProduct;
+
+private:
+  System::Windows::Forms::Button ^ btnCancelProduct;
+
+  // Sales controls
+private:
+  System::Windows::Forms::Label ^ lblSalesTitle;
+
+private:
+  System::Windows::Forms::DataGridView ^ dgvSales;
+
+private:
+  System::Windows::Forms::Button ^ btnRefreshSales;
+
+  // Logout
+private:
+  System::Windows::Forms::Button ^ btnLogout;
+
+private:
   System::ComponentModel::Container ^ components;
 
+private:
+  bool isEditMode;
+
+private:
+  int editProductID;
+
 #pragma region Windows Form Designer generated code
-  /// <summary>
-  /// Required method for Designer support - do not modify
-  /// the contents of this method with the code editor.
-  /// </summary>
   void InitializeComponent(void) {
+    this->tabControl = (gcnew System::Windows::Forms::TabControl());
+    this->tabDashboard = (gcnew System::Windows::Forms::TabPage());
+    this->tabProducts = (gcnew System::Windows::Forms::TabPage());
+    this->tabSales = (gcnew System::Windows::Forms::TabPage());
+    this->lblTitle = (gcnew System::Windows::Forms::Label());
+    this->lblTotalProducts = (gcnew System::Windows::Forms::Label());
+    this->lblTotalSales = (gcnew System::Windows::Forms::Label());
+    this->lblTotalIncome = (gcnew System::Windows::Forms::Label());
+    this->btnRefreshDashboard = (gcnew System::Windows::Forms::Button());
+    this->lblProductsTitle = (gcnew System::Windows::Forms::Label());
+    this->dgvProducts = (gcnew System::Windows::Forms::DataGridView());
+    this->btnRefreshProducts = (gcnew System::Windows::Forms::Button());
+    this->btnAddProduct = (gcnew System::Windows::Forms::Button());
+    this->btnEditProduct = (gcnew System::Windows::Forms::Button());
+    this->btnDeleteProduct = (gcnew System::Windows::Forms::Button());
+    this->panelProduct = (gcnew System::Windows::Forms::Panel());
+    this->lblNamaProduk = (gcnew System::Windows::Forms::Label());
+    this->txtNamaProduk = (gcnew System::Windows::Forms::TextBox());
+    this->lblHarga = (gcnew System::Windows::Forms::Label());
+    this->txtHarga = (gcnew System::Windows::Forms::TextBox());
+    this->lblKomisi = (gcnew System::Windows::Forms::Label());
+    this->txtKomisi = (gcnew System::Windows::Forms::TextBox());
+    this->btnSaveProduct = (gcnew System::Windows::Forms::Button());
+    this->btnCancelProduct = (gcnew System::Windows::Forms::Button());
+    this->lblSalesTitle = (gcnew System::Windows::Forms::Label());
+    this->dgvSales = (gcnew System::Windows::Forms::DataGridView());
+    this->btnRefreshSales = (gcnew System::Windows::Forms::Button());
+    this->btnLogout = (gcnew System::Windows::Forms::Button());
+    this->tabControl->SuspendLayout();
+    this->tabDashboard->SuspendLayout();
+    this->tabProducts->SuspendLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvProducts))
+        ->BeginInit();
+    this->panelProduct->SuspendLayout();
+    this->tabSales->SuspendLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvSales))
+        ->BeginInit();
     this->SuspendLayout();
+    //
+    // tabControl
+    //
+    this->tabControl->Controls->Add(this->tabDashboard);
+    this->tabControl->Controls->Add(this->tabProducts);
+    this->tabControl->Controls->Add(this->tabSales);
+    this->tabControl->Location = System::Drawing::Point(12, 12);
+    this->tabControl->Name = L"tabControl";
+    this->tabControl->SelectedIndex = 0;
+    this->tabControl->Size = System::Drawing::Size(760, 480);
+    this->tabControl->TabIndex = 0;
+    //
+    // tabDashboard
+    //
+    this->tabDashboard->Controls->Add(this->lblTitle);
+    this->tabDashboard->Controls->Add(this->lblTotalProducts);
+    this->tabDashboard->Controls->Add(this->lblTotalSales);
+    this->tabDashboard->Controls->Add(this->lblTotalIncome);
+    this->tabDashboard->Controls->Add(this->btnRefreshDashboard);
+    this->tabDashboard->Location = System::Drawing::Point(4, 22);
+    this->tabDashboard->Name = L"tabDashboard";
+    this->tabDashboard->Padding = System::Windows::Forms::Padding(3);
+    this->tabDashboard->Size = System::Drawing::Size(752, 454);
+    this->tabDashboard->TabIndex = 0;
+    this->tabDashboard->Text = L"Dashboard";
+    this->tabDashboard->UseVisualStyleBackColor = true;
+    //
+    // lblTitle
+    //
+    this->lblTitle->AutoSize = true;
+    this->lblTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
+    this->lblTitle->Location = System::Drawing::Point(20, 20);
+    this->lblTitle->Name = L"lblTitle";
+    this->lblTitle->Size = System::Drawing::Size(250, 32);
+    this->lblTitle->TabIndex = 0;
+    this->lblTitle->Text = L"Merchant Dashboard";
+    //
+    // lblTotalProducts
+    //
+    this->lblTotalProducts->AutoSize = true;
+    this->lblTotalProducts->Font =
+        (gcnew System::Drawing::Font(L"Segoe UI", 14));
+    this->lblTotalProducts->Location = System::Drawing::Point(30, 80);
+    this->lblTotalProducts->Name = L"lblTotalProducts";
+    this->lblTotalProducts->Size = System::Drawing::Size(150, 25);
+    this->lblTotalProducts->TabIndex = 1;
+    this->lblTotalProducts->Text = L"Total Produk: 0";
+    //
+    // lblTotalSales
+    //
+    this->lblTotalSales->AutoSize = true;
+    this->lblTotalSales->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14));
+    this->lblTotalSales->Location = System::Drawing::Point(30, 120);
+    this->lblTotalSales->Name = L"lblTotalSales";
+    this->lblTotalSales->Size = System::Drawing::Size(170, 25);
+    this->lblTotalSales->TabIndex = 2;
+    this->lblTotalSales->Text = L"Total Penjualan: 0";
+    //
+    // lblTotalIncome
+    //
+    this->lblTotalIncome->AutoSize = true;
+    this->lblTotalIncome->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblTotalIncome->ForeColor = System::Drawing::Color::DarkGreen;
+    this->lblTotalIncome->Location = System::Drawing::Point(30, 160);
+    this->lblTotalIncome->Name = L"lblTotalIncome";
+    this->lblTotalIncome->Size = System::Drawing::Size(200, 25);
+    this->lblTotalIncome->TabIndex = 3;
+    this->lblTotalIncome->Text = L"Pendapatan: Rp 0";
+    //
+    // btnRefreshDashboard
+    //
+    this->btnRefreshDashboard->Location = System::Drawing::Point(30, 210);
+    this->btnRefreshDashboard->Name = L"btnRefreshDashboard";
+    this->btnRefreshDashboard->Size = System::Drawing::Size(120, 30);
+    this->btnRefreshDashboard->TabIndex = 4;
+    this->btnRefreshDashboard->Text = L"Refresh";
+    this->btnRefreshDashboard->UseVisualStyleBackColor = true;
+    this->btnRefreshDashboard->Click += gcnew System::EventHandler(
+        this, &merchantForm::btnRefreshDashboard_Click);
+    //
+    // tabProducts
+    //
+    this->tabProducts->Controls->Add(this->lblProductsTitle);
+    this->tabProducts->Controls->Add(this->dgvProducts);
+    this->tabProducts->Controls->Add(this->btnRefreshProducts);
+    this->tabProducts->Controls->Add(this->btnAddProduct);
+    this->tabProducts->Controls->Add(this->btnEditProduct);
+    this->tabProducts->Controls->Add(this->btnDeleteProduct);
+    this->tabProducts->Controls->Add(this->panelProduct);
+    this->tabProducts->Location = System::Drawing::Point(4, 22);
+    this->tabProducts->Name = L"tabProducts";
+    this->tabProducts->Padding = System::Windows::Forms::Padding(3);
+    this->tabProducts->Size = System::Drawing::Size(752, 454);
+    this->tabProducts->TabIndex = 1;
+    this->tabProducts->Text = L"Produk Saya";
+    this->tabProducts->UseVisualStyleBackColor = true;
+    //
+    // lblProductsTitle
+    //
+    this->lblProductsTitle->AutoSize = true;
+    this->lblProductsTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblProductsTitle->Location = System::Drawing::Point(15, 15);
+    this->lblProductsTitle->Name = L"lblProductsTitle";
+    this->lblProductsTitle->Size = System::Drawing::Size(130, 25);
+    this->lblProductsTitle->TabIndex = 0;
+    this->lblProductsTitle->Text = L"Produk Saya";
+    //
+    // dgvProducts
+    //
+    this->dgvProducts->AllowUserToAddRows = false;
+    this->dgvProducts->AllowUserToDeleteRows = false;
+    this->dgvProducts->AutoSizeColumnsMode =
+        System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
+    this->dgvProducts->ColumnHeadersHeightSizeMode = System::Windows::Forms::
+        DataGridViewColumnHeadersHeightSizeMode::AutoSize;
+    this->dgvProducts->Location = System::Drawing::Point(15, 50);
+    this->dgvProducts->MultiSelect = false;
+    this->dgvProducts->Name = L"dgvProducts";
+    this->dgvProducts->ReadOnly = true;
+    this->dgvProducts->SelectionMode =
+        System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
+    this->dgvProducts->Size = System::Drawing::Size(450, 280);
+    this->dgvProducts->TabIndex = 1;
+    //
+    // btnRefreshProducts
+    //
+    this->btnRefreshProducts->Location = System::Drawing::Point(15, 340);
+    this->btnRefreshProducts->Name = L"btnRefreshProducts";
+    this->btnRefreshProducts->Size = System::Drawing::Size(100, 30);
+    this->btnRefreshProducts->TabIndex = 2;
+    this->btnRefreshProducts->Text = L"Refresh";
+    this->btnRefreshProducts->UseVisualStyleBackColor = true;
+    this->btnRefreshProducts->Click += gcnew System::EventHandler(
+        this, &merchantForm::btnRefreshProducts_Click);
+    //
+    // btnAddProduct
+    //
+    this->btnAddProduct->BackColor = System::Drawing::Color::LightGreen;
+    this->btnAddProduct->Location = System::Drawing::Point(125, 340);
+    this->btnAddProduct->Name = L"btnAddProduct";
+    this->btnAddProduct->Size = System::Drawing::Size(100, 30);
+    this->btnAddProduct->TabIndex = 3;
+    this->btnAddProduct->Text = L"Tambah";
+    this->btnAddProduct->UseVisualStyleBackColor = false;
+    this->btnAddProduct->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnAddProduct_Click);
+    //
+    // btnEditProduct
+    //
+    this->btnEditProduct->BackColor = System::Drawing::Color::LightBlue;
+    this->btnEditProduct->Location = System::Drawing::Point(235, 340);
+    this->btnEditProduct->Name = L"btnEditProduct";
+    this->btnEditProduct->Size = System::Drawing::Size(100, 30);
+    this->btnEditProduct->TabIndex = 4;
+    this->btnEditProduct->Text = L"Edit";
+    this->btnEditProduct->UseVisualStyleBackColor = false;
+    this->btnEditProduct->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnEditProduct_Click);
+    //
+    // btnDeleteProduct
+    //
+    this->btnDeleteProduct->BackColor = System::Drawing::Color::LightCoral;
+    this->btnDeleteProduct->Location = System::Drawing::Point(345, 340);
+    this->btnDeleteProduct->Name = L"btnDeleteProduct";
+    this->btnDeleteProduct->Size = System::Drawing::Size(100, 30);
+    this->btnDeleteProduct->TabIndex = 5;
+    this->btnDeleteProduct->Text = L"Hapus";
+    this->btnDeleteProduct->UseVisualStyleBackColor = false;
+    this->btnDeleteProduct->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnDeleteProduct_Click);
+    //
+    // panelProduct
+    //
+    this->panelProduct->BorderStyle =
+        System::Windows::Forms::BorderStyle::FixedSingle;
+    this->panelProduct->Controls->Add(this->lblNamaProduk);
+    this->panelProduct->Controls->Add(this->txtNamaProduk);
+    this->panelProduct->Controls->Add(this->lblHarga);
+    this->panelProduct->Controls->Add(this->txtHarga);
+    this->panelProduct->Controls->Add(this->lblKomisi);
+    this->panelProduct->Controls->Add(this->txtKomisi);
+    this->panelProduct->Controls->Add(this->btnSaveProduct);
+    this->panelProduct->Controls->Add(this->btnCancelProduct);
+    this->panelProduct->Location = System::Drawing::Point(480, 50);
+    this->panelProduct->Name = L"panelProduct";
+    this->panelProduct->Size = System::Drawing::Size(250, 280);
+    this->panelProduct->TabIndex = 6;
+    this->panelProduct->Visible = false;
+    //
+    // lblNamaProduk
+    //
+    this->lblNamaProduk->AutoSize = true;
+    this->lblNamaProduk->Location = System::Drawing::Point(15, 20);
+    this->lblNamaProduk->Name = L"lblNamaProduk";
+    this->lblNamaProduk->Size = System::Drawing::Size(75, 13);
+    this->lblNamaProduk->TabIndex = 0;
+    this->lblNamaProduk->Text = L"Nama Produk:";
+    //
+    // txtNamaProduk
+    //
+    this->txtNamaProduk->Location = System::Drawing::Point(15, 40);
+    this->txtNamaProduk->Name = L"txtNamaProduk";
+    this->txtNamaProduk->Size = System::Drawing::Size(210, 20);
+    this->txtNamaProduk->TabIndex = 1;
+    //
+    // lblHarga
+    //
+    this->lblHarga->AutoSize = true;
+    this->lblHarga->Location = System::Drawing::Point(15, 80);
+    this->lblHarga->Name = L"lblHarga";
+    this->lblHarga->Size = System::Drawing::Size(62, 13);
+    this->lblHarga->TabIndex = 2;
+    this->lblHarga->Text = L"Harga (Rp):";
+    //
+    // txtHarga
+    //
+    this->txtHarga->Location = System::Drawing::Point(15, 100);
+    this->txtHarga->Name = L"txtHarga";
+    this->txtHarga->Size = System::Drawing::Size(210, 20);
+    this->txtHarga->TabIndex = 3;
+    //
+    // lblKomisi
+    //
+    this->lblKomisi->AutoSize = true;
+    this->lblKomisi->Location = System::Drawing::Point(15, 140);
+    this->lblKomisi->Name = L"lblKomisi";
+    this->lblKomisi->Size = System::Drawing::Size(95, 13);
+    this->lblKomisi->TabIndex = 4;
+    this->lblKomisi->Text = L"Komisi Aplikasi (%):";
+    //
+    // txtKomisi
+    //
+    this->txtKomisi->Location = System::Drawing::Point(15, 160);
+    this->txtKomisi->Name = L"txtKomisi";
+    this->txtKomisi->Size = System::Drawing::Size(210, 20);
+    this->txtKomisi->TabIndex = 5;
+    this->txtKomisi->Text = L"5";
+    //
+    // btnSaveProduct
+    //
+    this->btnSaveProduct->BackColor = System::Drawing::Color::LightGreen;
+    this->btnSaveProduct->Location = System::Drawing::Point(15, 210);
+    this->btnSaveProduct->Name = L"btnSaveProduct";
+    this->btnSaveProduct->Size = System::Drawing::Size(100, 30);
+    this->btnSaveProduct->TabIndex = 6;
+    this->btnSaveProduct->Text = L"Simpan";
+    this->btnSaveProduct->UseVisualStyleBackColor = false;
+    this->btnSaveProduct->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnSaveProduct_Click);
+    //
+    // btnCancelProduct
+    //
+    this->btnCancelProduct->Location = System::Drawing::Point(125, 210);
+    this->btnCancelProduct->Name = L"btnCancelProduct";
+    this->btnCancelProduct->Size = System::Drawing::Size(100, 30);
+    this->btnCancelProduct->TabIndex = 7;
+    this->btnCancelProduct->Text = L"Batal";
+    this->btnCancelProduct->UseVisualStyleBackColor = true;
+    this->btnCancelProduct->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnCancelProduct_Click);
+    //
+    // tabSales
+    //
+    this->tabSales->Controls->Add(this->lblSalesTitle);
+    this->tabSales->Controls->Add(this->dgvSales);
+    this->tabSales->Controls->Add(this->btnRefreshSales);
+    this->tabSales->Location = System::Drawing::Point(4, 22);
+    this->tabSales->Name = L"tabSales";
+    this->tabSales->Size = System::Drawing::Size(752, 454);
+    this->tabSales->TabIndex = 2;
+    this->tabSales->Text = L"Penjualan";
+    this->tabSales->UseVisualStyleBackColor = true;
+    //
+    // lblSalesTitle
+    //
+    this->lblSalesTitle->AutoSize = true;
+    this->lblSalesTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblSalesTitle->Location = System::Drawing::Point(15, 15);
+    this->lblSalesTitle->Name = L"lblSalesTitle";
+    this->lblSalesTitle->Size = System::Drawing::Size(180, 25);
+    this->lblSalesTitle->TabIndex = 0;
+    this->lblSalesTitle->Text = L"Riwayat Penjualan";
+    //
+    // dgvSales
+    //
+    this->dgvSales->AllowUserToAddRows = false;
+    this->dgvSales->AllowUserToDeleteRows = false;
+    this->dgvSales->AutoSizeColumnsMode =
+        System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
+    this->dgvSales->ColumnHeadersHeightSizeMode = System::Windows::Forms::
+        DataGridViewColumnHeadersHeightSizeMode::AutoSize;
+    this->dgvSales->Location = System::Drawing::Point(15, 50);
+    this->dgvSales->MultiSelect = false;
+    this->dgvSales->Name = L"dgvSales";
+    this->dgvSales->ReadOnly = true;
+    this->dgvSales->Size = System::Drawing::Size(720, 340);
+    this->dgvSales->TabIndex = 1;
+    //
+    // btnRefreshSales
+    //
+    this->btnRefreshSales->Location = System::Drawing::Point(15, 400);
+    this->btnRefreshSales->Name = L"btnRefreshSales";
+    this->btnRefreshSales->Size = System::Drawing::Size(100, 30);
+    this->btnRefreshSales->TabIndex = 2;
+    this->btnRefreshSales->Text = L"Refresh";
+    this->btnRefreshSales->UseVisualStyleBackColor = true;
+    this->btnRefreshSales->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnRefreshSales_Click);
+    //
+    // btnLogout
+    //
+    this->btnLogout->BackColor = System::Drawing::Color::LightGray;
+    this->btnLogout->Location = System::Drawing::Point(680, 500);
+    this->btnLogout->Name = L"btnLogout";
+    this->btnLogout->Size = System::Drawing::Size(90, 30);
+    this->btnLogout->TabIndex = 1;
+    this->btnLogout->Text = L"Logout";
+    this->btnLogout->UseVisualStyleBackColor = false;
+    this->btnLogout->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnLogout_Click);
     //
     // merchantForm
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
     this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-    this->ClientSize = System::Drawing::Size(284, 261);
+    this->ClientSize = System::Drawing::Size(784, 541);
+    this->Controls->Add(this->tabControl);
+    this->Controls->Add(this->btnLogout);
+    this->FormBorderStyle =
+        System::Windows::Forms::FormBorderStyle::FixedSingle;
+    this->MaximizeBox = false;
     this->Name = L"merchantForm";
-    this->Text = L"Merchant";
+    this->StartPosition =
+        System::Windows::Forms::FormStartPosition::CenterScreen;
+    this->Text = L"Merchant Dashboard - E-Commerce";
     this->Load +=
         gcnew System::EventHandler(this, &merchantForm::merchantForm_Load);
+    this->tabControl->ResumeLayout(false);
+    this->tabDashboard->ResumeLayout(false);
+    this->tabDashboard->PerformLayout();
+    this->tabProducts->ResumeLayout(false);
+    this->tabProducts->PerformLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvProducts))
+        ->EndInit();
+    this->panelProduct->ResumeLayout(false);
+    this->panelProduct->PerformLayout();
+    this->tabSales->ResumeLayout(false);
+    this->tabSales->PerformLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvSales))
+        ->EndInit();
     this->ResumeLayout(false);
   }
 #pragma endregion
@@ -63,5 +543,26 @@ private:
 private:
   System::Void merchantForm_Load(System::Object ^ sender,
                                  System::EventArgs ^ e);
+  void LoadDashboard();
+  void LoadProducts();
+  void LoadSales();
+  void ClearProductForm();
+  System::Void btnRefreshDashboard_Click(System::Object ^ sender,
+                                         System::EventArgs ^ e);
+  System::Void btnRefreshProducts_Click(System::Object ^ sender,
+                                        System::EventArgs ^ e);
+  System::Void btnAddProduct_Click(System::Object ^ sender,
+                                   System::EventArgs ^ e);
+  System::Void btnEditProduct_Click(System::Object ^ sender,
+                                    System::EventArgs ^ e);
+  System::Void btnDeleteProduct_Click(System::Object ^ sender,
+                                      System::EventArgs ^ e);
+  System::Void btnSaveProduct_Click(System::Object ^ sender,
+                                    System::EventArgs ^ e);
+  System::Void btnCancelProduct_Click(System::Object ^ sender,
+                                      System::EventArgs ^ e);
+  System::Void btnRefreshSales_Click(System::Object ^ sender,
+                                     System::EventArgs ^ e);
+  System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

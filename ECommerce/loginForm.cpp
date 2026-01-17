@@ -51,13 +51,16 @@ System::Void loginF::btnMasuk_Click(System::Object ^ sender,
       ECommerce::adminForm ^ adminF = gcnew ECommerce::adminForm();
       adminF->ShowDialog();
     } else if (role == "Merchant") {
-      ECommerce::merchantForm ^ merchantF = gcnew ECommerce::merchantForm();
+      ECommerce::merchantForm ^ merchantF =
+          gcnew ECommerce::merchantForm(userID, username);
       merchantF->ShowDialog();
     } else if (role == "Customer") {
-      ECommerce::customerForm ^ customerF = gcnew ECommerce::customerForm();
+      ECommerce::customerForm ^ customerF =
+          gcnew ECommerce::customerForm(userID, username);
       customerF->ShowDialog();
     } else if (role == "Courier") {
-      ECommerce::courierForm ^ courierF = gcnew ECommerce::courierForm();
+      ECommerce::courierForm ^ courierF =
+          gcnew ECommerce::courierForm(userID, username);
       courierF->ShowDialog();
     }
 

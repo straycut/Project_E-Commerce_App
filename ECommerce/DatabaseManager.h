@@ -34,4 +34,29 @@ public:
 
   // Admin functions - Dashboard
   static array<int> ^ GetDashboardStats();
+
+  // ============ Merchant Functions ============
+  static DataTable ^ GetProductsByMerchant(int merchantID);
+  static bool AddProduct(String ^ nama, int harga, int komisi, int merchantID);
+  static bool UpdateProduct(int productID, String ^ nama, int harga,
+                            int komisi);
+  static bool DeleteProduct(int productID);
+  static DataTable ^ GetTransactionsByMerchant(int merchantID);
+  static array<int> ^ GetMerchantStats(int merchantID);
+  static DataTable ^ GetAllProductsTable();
+
+  // ============ Customer Functions ============
+  static int GetUserSaldo(int userID);
+  static bool UpdateUserSaldo(int userID, int newSaldo);
+  static bool TopUpSaldo(int userID, int amount);
+  static bool PurchaseProduct(int productID, int customerID);
+  static DataTable ^ GetTransactionsByCustomer(int customerID);
+
+  // ============ Courier Functions ============
+  static DataTable ^ GetPendingDeliveries();
+  static DataTable ^ GetActiveDeliveries(int courierID);
+  static DataTable ^ GetDeliveryHistory(int courierID);
+  static bool ClaimDelivery(int transactionID, int courierID);
+  static bool CompleteDelivery(int transactionID, int courierID);
+  static array<int> ^ GetCourierStats(int courierID);
 };
