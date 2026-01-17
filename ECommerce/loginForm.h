@@ -167,78 +167,11 @@ private:
     this->PerformLayout();
   }
 #pragma endregion
+
+  // ========== Event Handlers (implementations in loginForm.cpp) ==========
 private:
-  System::Void btnDaftar_Click(System::Object ^ sender, System::EventArgs ^ e) {
-    // Buat instance dari registrationForm
-    ECommerce::registerF ^ registrationForm = gcnew ECommerce::registerF();
-    // Tampilkan registration form
-    registrationForm->ShowDialog();
-    // Tampilkan kembali login form setelah registration form ditutup
-    this->Show();
-  }
-
-private:
-  System::Void btnMasuk_Click(System::Object ^ sender, System::EventArgs ^ e) {
-    String ^ username = textBoxNama->Text;
-    String ^ password = textBoxSandi->Text;
-
-    // Validasi input tidak kosong
-    if (String::IsNullOrWhiteSpace(username) ||
-        String::IsNullOrWhiteSpace(password)) {
-      MessageBox::Show("Username dan Password tidak boleh kosong!",
-                       "Peringatan", MessageBoxButtons::OK,
-                       MessageBoxIcon::Warning);
-      return;
-    }
-
-    // Variabel untuk menyimpan hasil dari database
-    String ^ role;
-    int userID;
-    int saldo;
-    int isActive;
-
-    // Validasi user dari database SQLite
-    if (DatabaseManager::ValidateUser(username, password, role, userID, saldo,
-                                      isActive)) {
-      // Check if user is active
-      if (isActive == 0) {
-        MessageBox::Show("Akun Anda telah dinonaktifkan oleh Admin.\nSilakan "
-                         "hubungi Administrator.",
-                         "Akun Dinonaktifkan", MessageBoxButtons::OK,
-                         MessageBoxIcon::Warning);
-        return;
-      }
-
-      // Login berhasil, buka form sesuai role
-      this->Hide();
-
-      if (role == "Admin") {
-        ECommerce::adminForm ^ adminForm = gcnew ECommerce::adminForm();
-        adminForm->ShowDialog();
-      } else if (role == "Merchant") {
-        ECommerce::merchantForm ^ merchantForm =
-            gcnew ECommerce::merchantForm();
-        merchantForm->ShowDialog();
-      } else if (role == "Customer") {
-        ECommerce::customerForm ^ customerForm =
-            gcnew ECommerce::customerForm();
-        customerForm->ShowDialog();
-      } else if (role == "Courier") {
-        ECommerce::courierForm ^ courierForm = gcnew ECommerce::courierForm();
-        courierForm->ShowDialog();
-      }
-
-      // Clear fields
-      textBoxNama->Text = "";
-      textBoxSandi->Text = "";
-      this->Show();
-    } else {
-      MessageBox::Show("Username atau Password salah!", "Login Gagal",
-                       MessageBoxButtons::OK, MessageBoxIcon::Error);
-    }
-  }
-
-private:
-  System::Void loginF_Load(System::Object ^ sender, System::EventArgs ^ e) {}
+  System::Void btnDaftar_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnMasuk_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void loginF_Load(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

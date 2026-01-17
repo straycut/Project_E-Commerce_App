@@ -146,6 +146,7 @@
     <ClCompile Include="courierForm.cpp" />
     <ClCompile Include="customerForm.cpp" />
     <ClCompile Include="DatabaseManager.cpp" />
+    <ClCompile Include="loginForm.cpp" />
     <ClCompile Include="mainForm.cpp" />
     <ClCompile Include="merchantForm.cpp" />
     <ClCompile Include="registrationForm.cpp" />
