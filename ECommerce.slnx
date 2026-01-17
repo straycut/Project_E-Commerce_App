@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ECommerce/ECommerce.vcxproj" Id="991367c3-11b4-b272-7f31-6c69d7b22e4f" />
+</Solution>
