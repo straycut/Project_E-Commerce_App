@@ -148,7 +148,6 @@
     <ClCompile Include="DatabaseManager.cpp" />
     <ClCompile Include="mainForm.cpp" />
     <ClCompile Include="merchantForm.cpp" />
-    <ClCompile Include="pageHome.cpp" />
     <ClCompile Include="registrationForm.cpp" />
     <ClCompile Include="sqlite3.c">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -178,9 +177,6 @@
     <ClInclude Include="merchantForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
-    <ClInclude Include="pageHome.h">
-      <FileType>CppForm</FileType>
-    </ClInclude>
     <ClInclude Include="registrationForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
@@ -201,9 +197,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="merchantForm.resx">
       <DependentUpon>merchantForm.h</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="pageHome.resx">
-      <DependentUpon>pageHome.h</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="registrationForm.resx">
       <DependentUpon>registrationForm.h</DependentUpon>

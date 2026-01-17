@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-// Forward declarations from header
+// Forward declarations
 struct sqlite3;
 struct sqlite3_stmt;
 
@@ -18,6 +18,7 @@ struct UserData {
   std::string password;
   std::string role;
   int saldo;
+  int isActive; // 1 = active, 0 = inactive
 };
 
 struct ProductData {
@@ -34,16 +35,29 @@ struct TransactionData {
   int customerID;
   int affiliateID;
   std::string status;
+  std::string createdAt;
 };
 
 struct IncomeData {
   int id;
   int userID;
+  std::string username;
   int transactionID;
   int amount;
   std::string type;
   std::string description;
   std::string createdAt;
+};
+
+struct DashboardStats {
+  int totalUsers;
+  int totalMerchants;
+  int totalCustomers;
+  int totalCouriers;
+  int totalTransactions;
+  int totalIncome;
+  int activeUsers;
+  int inactiveUsers;
 };
 
 // Static member initialization
@@ -74,7 +88,7 @@ static bool NativeInitialize() {
     return false;
   }
 
-  // Create Users table
+  // Create Users table with is_active field
   const char *createUsersSQL = "CREATE TABLE IF NOT EXISTS users ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                                "username TEXT UNIQUE NOT NULL,"
@@ -82,11 +96,15 @@ static bool NativeInitialize() {
                                "role TEXT NOT NULL CHECK(role IN ('Admin', "
                                "'Merchant', 'Customer', 'Courier')),"
                                "saldo INTEGER DEFAULT 0,"
+                               "is_active INTEGER DEFAULT 1,"
                                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
                                ");";
 
   if (!ExecuteSQL(createUsersSQL))
     return false;
+
+  // Add is_active column if not exists (for existing databases)
+  ExecuteSQL("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
 
   // Create Products table
   const char *createProductsSQL =
@@ -137,9 +155,9 @@ static bool NativeInitialize() {
     return false;
 
   // Insert default admin
-  const char *insertAdminSQL =
-      "INSERT OR IGNORE INTO users (username, password, role, saldo) "
-      "VALUES ('admin', 'admin123', 'Admin', 0);";
+  const char *insertAdminSQL = "INSERT OR IGNORE INTO users (username, "
+                               "password, role, saldo, is_active) "
+                               "VALUES ('admin', 'admin123', 'Admin', 0, 1);";
 
   ExecuteSQL(insertAdminSQL);
 
@@ -159,8 +177,8 @@ static bool NativeRegisterUser(const std::string &username,
   if (g_db == nullptr)
     return false;
 
-  const char *sql = "INSERT INTO users (username, password, role, saldo) "
-                    "VALUES (?, ?, ?, 0);";
+  const char *sql = "INSERT INTO users (username, password, role, saldo, "
+                    "is_active) VALUES (?, ?, ?, 0, 1);";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -182,8 +200,9 @@ static UserData *NativeValidateUser(const std::string &username,
   if (g_db == nullptr)
     return nullptr;
 
-  const char *sql = "SELECT id, username, password, role, saldo FROM users "
-                    "WHERE username = ? AND password = ?;";
+  const char *sql =
+      "SELECT id, username, password, role, saldo, COALESCE(is_active, 1) FROM "
+      "users WHERE username = ? AND password = ?;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -204,6 +223,7 @@ static UserData *NativeValidateUser(const std::string &username,
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
     user->role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
     user->saldo = sqlite3_column_int(stmt, 4);
+    user->isActive = sqlite3_column_int(stmt, 5);
 
     sqlite3_finalize(stmt);
     return user;
@@ -213,15 +233,224 @@ static UserData *NativeValidateUser(const std::string &username,
   return nullptr;
 }
 
+// Get all users for admin
+static std::vector<UserData> NativeGetAllUsers() {
+  std::vector<UserData> users;
+  if (g_db == nullptr)
+    return users;
+
+  const char *sql = "SELECT id, username, password, role, saldo, "
+                    "COALESCE(is_active, 1) FROM users ORDER BY id;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return users;
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    UserData user;
+    user.id = sqlite3_column_int(stmt, 0);
+    user.username =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    user.password =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+    user.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
+    user.saldo = sqlite3_column_int(stmt, 4);
+    user.isActive = sqlite3_column_int(stmt, 5);
+    users.push_back(user);
+  }
+
+  sqlite3_finalize(stmt);
+  return users;
+}
+
+// Toggle user active status
+static bool NativeSetUserActive(int userID, int isActive) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql = "UPDATE users SET is_active = ? WHERE id = ?;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_int(stmt, 1, isActive);
+  sqlite3_bind_int(stmt, 2, userID);
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE;
+}
+
+// Delete user
+static bool NativeDeleteUser(int userID) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql = "DELETE FROM users WHERE id = ? AND role != 'Admin';";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_int(stmt, 1, userID);
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE;
+}
+
+// Get all income with username
+static std::vector<IncomeData> NativeGetAllIncome() {
+  std::vector<IncomeData> incomes;
+  if (g_db == nullptr)
+    return incomes;
+
+  const char *sql =
+      "SELECT i.id, i.user_id, u.username, i.transaction_id, i.amount, i.type, "
+      "COALESCE(i.description, ''), COALESCE(i.created_at, '') "
+      "FROM income i LEFT JOIN users u ON i.user_id = u.id ORDER BY "
+      "i.created_at DESC;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return incomes;
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    IncomeData income;
+    income.id = sqlite3_column_int(stmt, 0);
+    income.userID = sqlite3_column_int(stmt, 1);
+    const char *uname =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+    income.username = uname ? uname : "";
+    income.transactionID = sqlite3_column_int(stmt, 3);
+    income.amount = sqlite3_column_int(stmt, 4);
+    income.type = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
+    const char *desc =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    income.description = desc ? desc : "";
+    const char *created =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    income.createdAt = created ? created : "";
+    incomes.push_back(income);
+  }
+
+  sqlite3_finalize(stmt);
+  return incomes;
+}
+
+// Get all transactions
+static std::vector<TransactionData> NativeGetAllTransactions() {
+  std::vector<TransactionData> transactions;
+  if (g_db == nullptr)
+    return transactions;
+
+  const char *sql = "SELECT id, product_id, customer_id, affiliate_id, status, "
+                    "COALESCE(created_at, '') "
+                    "FROM transactions ORDER BY id DESC;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return transactions;
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    TransactionData trans;
+    trans.transID = sqlite3_column_int(stmt, 0);
+    trans.productID = sqlite3_column_int(stmt, 1);
+    trans.customerID = sqlite3_column_int(stmt, 2);
+    trans.affiliateID = sqlite3_column_int(stmt, 3);
+    trans.status = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
+    const char *created =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
+    trans.createdAt = created ? created : "";
+    transactions.push_back(trans);
+  }
+
+  sqlite3_finalize(stmt);
+  return transactions;
+}
+
+// Get dashboard statistics
+static DashboardStats NativeGetDashboardStats() {
+  DashboardStats stats = {0, 0, 0, 0, 0, 0, 0, 0};
+  if (g_db == nullptr)
+    return stats;
+
+  sqlite3_stmt *stmt;
+
+  // Count by role
+  const char *sql1 = "SELECT role, COUNT(*) FROM users GROUP BY role;";
+  if (sqlite3_prepare_v2(g_db, sql1, -1, &stmt, nullptr) == SQLITE_OK) {
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char *role =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      int count = sqlite3_column_int(stmt, 1);
+      if (strcmp(role, "Admin") == 0)
+        stats.totalUsers += count;
+      else if (strcmp(role, "Merchant") == 0)
+        stats.totalMerchants = count;
+      else if (strcmp(role, "Customer") == 0)
+        stats.totalCustomers = count;
+      else if (strcmp(role, "Courier") == 0)
+        stats.totalCouriers = count;
+      stats.totalUsers += count;
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  // Active/Inactive users
+  const char *sql2 =
+      "SELECT COALESCE(is_active, 1), COUNT(*) FROM users GROUP BY is_active;";
+  if (sqlite3_prepare_v2(g_db, sql2, -1, &stmt, nullptr) == SQLITE_OK) {
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      int isActive = sqlite3_column_int(stmt, 0);
+      int count = sqlite3_column_int(stmt, 1);
+      if (isActive == 1)
+        stats.activeUsers = count;
+      else
+        stats.inactiveUsers = count;
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  // Total transactions
+  const char *sql3 = "SELECT COUNT(*) FROM transactions;";
+  if (sqlite3_prepare_v2(g_db, sql3, -1, &stmt, nullptr) == SQLITE_OK) {
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      stats.totalTransactions = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  // Total income
+  const char *sql4 = "SELECT COALESCE(SUM(amount), 0) FROM income;";
+  if (sqlite3_prepare_v2(g_db, sql4, -1, &stmt, nullptr) == SQLITE_OK) {
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      stats.totalIncome = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  return stats;
+}
+
 #pragma managed(pop)
 
 // ============ Managed Wrapper Implementation ============
-// This section uses CLR/managed code
 
 #include <msclr/marshal_cppstd.h>
 
 using namespace System;
 using namespace System::Windows::Forms;
+using namespace System::Data;
+using namespace System::Collections::Generic;
 
 public
 ref class DatabaseManager {
@@ -240,8 +469,8 @@ public:
   }
 
   static bool ValidateUser(String ^ username, String ^ password,
-                           String ^ % outRole, int % outUserID,
-                           int % outSaldo) {
+                           String ^ % outRole, int % outUserID, int % outSaldo,
+                           int % outIsActive) {
     std::string user = msclr::interop::marshal_as<std::string>(username);
     std::string pass = msclr::interop::marshal_as<std::string>(password);
 
@@ -251,10 +480,116 @@ public:
       outUserID = userData->id;
       outRole = gcnew String(userData->role.c_str());
       outSaldo = userData->saldo;
+      outIsActive = userData->isActive;
       delete userData;
       return true;
     }
 
     return false;
+  }
+
+  // Overload for backward compatibility
+  static bool ValidateUser(String ^ username, String ^ password,
+                           String ^ % outRole, int % outUserID,
+                           int % outSaldo) {
+    int isActive;
+    return ValidateUser(username, password, outRole, outUserID, outSaldo,
+                        isActive);
+  }
+
+  // Get all users as DataTable for DataGridView
+  static DataTable ^ GetAllUsersTable() {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("Username", String::typeid);
+    dt->Columns->Add("Role", String::typeid);
+    dt->Columns->Add("Saldo", Int32::typeid);
+    dt->Columns->Add("Status", String::typeid);
+
+    std::vector<UserData> users = NativeGetAllUsers();
+    for (const auto &user : users) {
+      DataRow ^ row = dt->NewRow();
+      row["ID"] = user.id;
+      row["Username"] = gcnew String(user.username.c_str());
+      row["Role"] = gcnew String(user.role.c_str());
+      row["Saldo"] = user.saldo;
+      row["Status"] = user.isActive ? "Active" : "Inactive";
+      dt->Rows->Add(row);
+    }
+
+    return dt;
+  }
+
+  // Set user active/inactive
+  static bool SetUserActive(int userID, bool isActive) {
+    return NativeSetUserActive(userID, isActive ? 1 : 0);
+  }
+
+  // Delete user
+  static bool DeleteUser(int userID) { return NativeDeleteUser(userID); }
+
+  // Get all income as DataTable
+  static DataTable ^ GetAllIncomeTable() {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("Username", String::typeid);
+    dt->Columns->Add("Amount", Int32::typeid);
+    dt->Columns->Add("Type", String::typeid);
+    dt->Columns->Add("Description", String::typeid);
+    dt->Columns->Add("Date", String::typeid);
+
+    std::vector<IncomeData> incomes = NativeGetAllIncome();
+    for (const auto &income : incomes) {
+      DataRow ^ row = dt->NewRow();
+      row["ID"] = income.id;
+      row["Username"] = gcnew String(income.username.c_str());
+      row["Amount"] = income.amount;
+      row["Type"] = gcnew String(income.type.c_str());
+      row["Description"] = gcnew String(income.description.c_str());
+      row["Date"] = gcnew String(income.createdAt.c_str());
+      dt->Rows->Add(row);
+    }
+
+    return dt;
+  }
+
+  // Get all transactions as DataTable
+  static DataTable ^ GetAllTransactionsTable() {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("ProductID", Int32::typeid);
+    dt->Columns->Add("CustomerID", Int32::typeid);
+    dt->Columns->Add("AffiliateID", Int32::typeid);
+    dt->Columns->Add("Status", String::typeid);
+    dt->Columns->Add("Date", String::typeid);
+
+    std::vector<TransactionData> transactions = NativeGetAllTransactions();
+    for (const auto &trans : transactions) {
+      DataRow ^ row = dt->NewRow();
+      row["ID"] = trans.transID;
+      row["ProductID"] = trans.productID;
+      row["CustomerID"] = trans.customerID;
+      row["AffiliateID"] = trans.affiliateID;
+      row["Status"] = gcnew String(trans.status.c_str());
+      row["Date"] = gcnew String(trans.createdAt.c_str());
+      dt->Rows->Add(row);
+    }
+
+    return dt;
+  }
+
+  // Get dashboard statistics
+  static array<int> ^ GetDashboardStats() {
+    DashboardStats stats = NativeGetDashboardStats();
+    array<int> ^ result = gcnew array<int>(8);
+    result[0] = stats.totalUsers;
+    result[1] = stats.totalMerchants;
+    result[2] = stats.totalCustomers;
+    result[3] = stats.totalCouriers;
+    result[4] = stats.totalTransactions;
+    result[5] = stats.totalIncome;
+    result[6] = stats.activeUsers;
+    result[7] = stats.inactiveUsers;
+    return result;
   }
 };

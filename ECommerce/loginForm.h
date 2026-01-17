@@ -6,7 +6,6 @@
 #include "merchantForm.h"
 #include "registrationForm.h"
 
-
 namespace ECommerce {
 
 using namespace System;
@@ -196,10 +195,20 @@ private:
     String ^ role;
     int userID;
     int saldo;
+    int isActive;
 
     // Validasi user dari database SQLite
-    if (DatabaseManager::ValidateUser(username, password, role, userID,
-                                      saldo)) {
+    if (DatabaseManager::ValidateUser(username, password, role, userID, saldo,
+                                      isActive)) {
+      // Check if user is active
+      if (isActive == 0) {
+        MessageBox::Show("Akun Anda telah dinonaktifkan oleh Admin.\nSilakan "
+                         "hubungi Administrator.",
+                         "Akun Dinonaktifkan", MessageBoxButtons::OK,
+                         MessageBoxIcon::Warning);
+        return;
+      }
+
       // Login berhasil, buka form sesuai role
       this->Hide();
 

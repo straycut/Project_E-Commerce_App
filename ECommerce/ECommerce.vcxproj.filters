@@ -33,9 +33,6 @@
     <ClCompile Include="merchantForm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pageHome.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="registrationForm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,9 +57,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="merchantForm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pageHome.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="registrationForm.h">
