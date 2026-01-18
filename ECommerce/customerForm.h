@@ -96,6 +96,24 @@ private:
   System::Windows::Forms::Button ^ btnTopUp;
 
 private:
+  System::Windows::Forms::TabPage ^ tabProfile;
+
+private:
+  System::Windows::Forms::Label ^ lblProfileTitle;
+
+private:
+  System::Windows::Forms::Label ^ lblAlamat;
+
+private:
+  System::Windows::Forms::TextBox ^ txtAlamat;
+
+private:
+  System::Windows::Forms::Button ^ btnSaveAlamat;
+
+private:
+  System::Windows::Forms::Label ^ lblAlamatInfo;
+
+private:
   System::Windows::Forms::Button ^ btnLogout;
 
 private:
@@ -107,6 +125,7 @@ private:
     this->tabCatalog = (gcnew System::Windows::Forms::TabPage());
     this->tabHistory = (gcnew System::Windows::Forms::TabPage());
     this->tabSaldo = (gcnew System::Windows::Forms::TabPage());
+    this->tabProfile = (gcnew System::Windows::Forms::TabPage());
     this->lblCatalogTitle = (gcnew System::Windows::Forms::Label());
     this->dgvProducts = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshCatalog = (gcnew System::Windows::Forms::Button());
@@ -120,6 +139,11 @@ private:
     this->lblTopUpAmount = (gcnew System::Windows::Forms::Label());
     this->txtTopUpAmount = (gcnew System::Windows::Forms::TextBox());
     this->btnTopUp = (gcnew System::Windows::Forms::Button());
+    this->lblProfileTitle = (gcnew System::Windows::Forms::Label());
+    this->lblAlamat = (gcnew System::Windows::Forms::Label());
+    this->txtAlamat = (gcnew System::Windows::Forms::TextBox());
+    this->btnSaveAlamat = (gcnew System::Windows::Forms::Button());
+    this->lblAlamatInfo = (gcnew System::Windows::Forms::Label());
     this->btnLogout = (gcnew System::Windows::Forms::Button());
     this->tabControl->SuspendLayout();
     this->tabCatalog->SuspendLayout();
@@ -131,6 +155,7 @@ private:
          this->dgvHistory))
         ->BeginInit();
     this->tabSaldo->SuspendLayout();
+    this->tabProfile->SuspendLayout();
     this->SuspendLayout();
     //
     // tabControl
@@ -138,6 +163,7 @@ private:
     this->tabControl->Controls->Add(this->tabCatalog);
     this->tabControl->Controls->Add(this->tabHistory);
     this->tabControl->Controls->Add(this->tabSaldo);
+    this->tabControl->Controls->Add(this->tabProfile);
     this->tabControl->Location = System::Drawing::Point(12, 12);
     this->tabControl->Name = L"tabControl";
     this->tabControl->SelectedIndex = 0;
@@ -342,6 +368,77 @@ private:
     this->btnTopUp->Click +=
         gcnew System::EventHandler(this, &customerForm::btnTopUp_Click);
     //
+    // tabProfile
+    //
+    this->tabProfile->Controls->Add(this->lblProfileTitle);
+    this->tabProfile->Controls->Add(this->lblAlamat);
+    this->tabProfile->Controls->Add(this->txtAlamat);
+    this->tabProfile->Controls->Add(this->btnSaveAlamat);
+    this->tabProfile->Controls->Add(this->lblAlamatInfo);
+    this->tabProfile->Location = System::Drawing::Point(4, 22);
+    this->tabProfile->Name = L"tabProfile";
+    this->tabProfile->Size = System::Drawing::Size(752, 454);
+    this->tabProfile->TabIndex = 3;
+    this->tabProfile->Text = L"Profil";
+    this->tabProfile->UseVisualStyleBackColor = true;
+    //
+    // lblProfileTitle
+    //
+    this->lblProfileTitle->AutoSize = true;
+    this->lblProfileTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblProfileTitle->Location = System::Drawing::Point(15, 15);
+    this->lblProfileTitle->Name = L"lblProfileTitle";
+    this->lblProfileTitle->Size = System::Drawing::Size(150, 25);
+    this->lblProfileTitle->TabIndex = 0;
+    this->lblProfileTitle->Text = L"Profil Saya";
+    //
+    // lblAlamat
+    //
+    this->lblAlamat->AutoSize = true;
+    this->lblAlamat->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->lblAlamat->Location = System::Drawing::Point(15, 60);
+    this->lblAlamat->Name = L"lblAlamat";
+    this->lblAlamat->Size = System::Drawing::Size(120, 20);
+    this->lblAlamat->TabIndex = 1;
+    this->lblAlamat->Text = L"Alamat Pengiriman:";
+    //
+    // txtAlamat
+    //
+    this->txtAlamat->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->txtAlamat->Location = System::Drawing::Point(15, 85);
+    this->txtAlamat->Multiline = true;
+    this->txtAlamat->Name = L"txtAlamat";
+    this->txtAlamat->Size = System::Drawing::Size(450, 80);
+    this->txtAlamat->TabIndex = 2;
+    //
+    // btnSaveAlamat
+    //
+    this->btnSaveAlamat->BackColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnSaveAlamat->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
+    this->btnSaveAlamat->ForeColor = System::Drawing::Color::White;
+    this->btnSaveAlamat->Location = System::Drawing::Point(15, 180);
+    this->btnSaveAlamat->Name = L"btnSaveAlamat";
+    this->btnSaveAlamat->Size = System::Drawing::Size(150, 35);
+    this->btnSaveAlamat->TabIndex = 3;
+    this->btnSaveAlamat->Text = L"Simpan Alamat";
+    this->btnSaveAlamat->UseVisualStyleBackColor = false;
+    this->btnSaveAlamat->Click +=
+        gcnew System::EventHandler(this, &customerForm::btnSaveAlamat_Click);
+    //
+    // lblAlamatInfo
+    //
+    this->lblAlamatInfo->AutoSize = true;
+    this->lblAlamatInfo->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9));
+    this->lblAlamatInfo->ForeColor = System::Drawing::Color::Gray;
+    this->lblAlamatInfo->Location = System::Drawing::Point(15, 225);
+    this->lblAlamatInfo->Name = L"lblAlamatInfo";
+    this->lblAlamatInfo->Size = System::Drawing::Size(350, 15);
+    this->lblAlamatInfo->TabIndex = 4;
+    this->lblAlamatInfo->Text = L"Alamat ini akan digunakan untuk pengiriman produk yang Anda beli.";
+    //
     // btnLogout
     //
     this->btnLogout->BackColor = System::Drawing::Color::LightGray;
@@ -383,6 +480,8 @@ private:
         ->EndInit();
     this->tabSaldo->ResumeLayout(false);
     this->tabSaldo->PerformLayout();
+    this->tabProfile->ResumeLayout(false);
+    this->tabProfile->PerformLayout();
     this->ResumeLayout(false);
   }
 #pragma endregion
@@ -394,12 +493,14 @@ private:
   void LoadCatalog();
   void LoadHistory();
   void LoadSaldo();
+  void LoadProfile();
   System::Void btnRefreshCatalog_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
   System::Void btnBuy_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
   System::Void btnTopUp_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnSaveAlamat_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

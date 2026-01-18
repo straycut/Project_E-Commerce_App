@@ -8,6 +8,7 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
   LoadSaldo();
   LoadCatalog();
   LoadHistory();
+  LoadProfile();
 }
 
 void customerForm::LoadCatalog() {
@@ -106,6 +107,24 @@ System::Void customerForm::btnTopUp_Click(System::Object ^ sender,
 System::Void customerForm::btnLogout_Click(System::Object ^ sender,
                                            System::EventArgs ^ e) {
   this->Close();
+}
+
+void customerForm::LoadProfile() {
+  String ^ alamat = DatabaseManager::GetUserAddress(currentUserID);
+  txtAlamat->Text = alamat;
+}
+
+System::Void customerForm::btnSaveAlamat_Click(System::Object ^ sender,
+                                               System::EventArgs ^ e) {
+  String ^ alamat = txtAlamat->Text->Trim();
+  
+  if (DatabaseManager::UpdateUserAddress(currentUserID, alamat)) {
+    MessageBox::Show("Alamat berhasil disimpan!", "Sukses",
+                     MessageBoxButtons::OK, MessageBoxIcon::Information);
+  } else {
+    MessageBox::Show("Gagal menyimpan alamat!", "Error",
+                     MessageBoxButtons::OK, MessageBoxIcon::Error);
+  }
 }
 
 } // namespace ECommerce

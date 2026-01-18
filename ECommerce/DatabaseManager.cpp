@@ -19,6 +19,7 @@ struct UserData {
   std::string role;
   int saldo;
   int isActive; // 1 = active, 0 = inactive
+  std::string alamat; // address
 };
 
 struct ProductData {
@@ -36,6 +37,8 @@ struct TransactionData {
   int affiliateID;
   std::string status;
   std::string createdAt;
+  std::string customerAddress;
+  std::string merchantAddress;
 };
 
 struct IncomeData {
@@ -58,6 +61,13 @@ struct DashboardStats {
   int totalIncome;
   int activeUsers;
   int inactiveUsers;
+};
+
+struct IncomeBreakdown {
+  int totalIncome;
+  int appIncome;      // Income from commissions (application)
+  int merchantIncome; // Income from sales (merchants)
+  int courierIncome;  // Income from deliveries (couriers)
 };
 
 // Static member initialization
@@ -88,7 +98,7 @@ static bool NativeInitialize() {
     return false;
   }
 
-  // Create Users table with is_active field
+  // Create Users table with is_active and alamat fields
   const char *createUsersSQL = "CREATE TABLE IF NOT EXISTS users ("
                                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                                "username TEXT UNIQUE NOT NULL,"
@@ -97,14 +107,16 @@ static bool NativeInitialize() {
                                "'Merchant', 'Customer', 'Courier')),"
                                "saldo INTEGER DEFAULT 0,"
                                "is_active INTEGER DEFAULT 1,"
+                               "alamat TEXT DEFAULT '',"
                                "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
                                ");";
 
   if (!ExecuteSQL(createUsersSQL))
     return false;
 
-  // Add is_active column if not exists (for existing databases)
+  // Add columns if not exists (for existing databases)
   ExecuteSQL("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
+  ExecuteSQL("ALTER TABLE users ADD COLUMN alamat TEXT DEFAULT '';");
 
   // Create Products table
   const char *createProductsSQL =
@@ -240,7 +252,7 @@ static std::vector<UserData> NativeGetAllUsers() {
     return users;
 
   const char *sql = "SELECT id, username, password, role, saldo, "
-                    "COALESCE(is_active, 1) FROM users ORDER BY id;";
+                    "COALESCE(is_active, 1), COALESCE(alamat, '') FROM users ORDER BY id;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -257,6 +269,8 @@ static std::vector<UserData> NativeGetAllUsers() {
     user.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
     user.saldo = sqlite3_column_int(stmt, 4);
     user.isActive = sqlite3_column_int(stmt, 5);
+    const char *addr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    user.alamat = addr ? addr : "";
     users.push_back(user);
   }
 
@@ -439,6 +453,36 @@ static DashboardStats NativeGetDashboardStats() {
   }
 
   return stats;
+}
+
+// Get income breakdown by type
+static IncomeBreakdown NativeGetIncomeBreakdown() {
+  IncomeBreakdown breakdown = {0, 0, 0, 0};
+  if (g_db == nullptr)
+    return breakdown;
+
+  sqlite3_stmt *stmt;
+
+  // Get income by type
+  const char *sql = "SELECT type, COALESCE(SUM(amount), 0) FROM income GROUP BY type;";
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char *type = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      int amount = sqlite3_column_int(stmt, 1);
+      if (type) {
+        if (strcmp(type, "commission") == 0)
+          breakdown.appIncome = amount;
+        else if (strcmp(type, "sale") == 0)
+          breakdown.merchantIncome = amount;
+        else if (strcmp(type, "delivery") == 0)
+          breakdown.courierIncome = amount;
+      }
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  breakdown.totalIncome = breakdown.appIncome + breakdown.merchantIncome + breakdown.courierIncome;
+  return breakdown;
 }
 
 // ============ Merchant Functions ============
@@ -707,6 +751,48 @@ static bool NativeUpdateUserSaldo(int userID, int newSaldo) {
   return rc == SQLITE_DONE;
 }
 
+// Get user address
+static std::string NativeGetUserAddress(int userID) {
+  if (g_db == nullptr)
+    return "";
+
+  const char *sql = "SELECT COALESCE(alamat, '') FROM users WHERE id = ?;";
+  sqlite3_stmt *stmt;
+  std::string alamat = "";
+
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, userID);
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char *addr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      alamat = addr ? addr : "";
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  return alamat;
+}
+
+// Update user address
+static bool NativeUpdateUserAddress(int userID, const std::string &alamat) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql = "UPDATE users SET alamat = ? WHERE id = ?;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_text(stmt, 1, alamat.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int(stmt, 2, userID);
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE;
+}
+
 // Purchase product - create transaction and handle money
 static bool NativePurchaseProduct(int productID, int customerID) {
   if (g_db == nullptr)
@@ -836,10 +922,16 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
   EnsureCourierColumn();
 
   const char *sql =
-      "SELECT id, product_id, customer_id, 0, status, COALESCE(created_at, '') "
-      "FROM transactions WHERE status = 'pending' AND (courier_id IS NULL OR "
-      "courier_id = 0) "
-      "ORDER BY id DESC;";
+      "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
+      "COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+      "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
+      "t.courier_id = 0) "
+      "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -856,6 +948,13 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    
+    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.customerAddress = custAddr ? custAddr : "";
+    
+    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    trans.merchantAddress = merchAddr ? merchAddr : "";
+    
     transactions.push_back(trans);
   }
 
@@ -870,10 +969,15 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
     return transactions;
 
   const char *sql =
-      "SELECT id, product_id, customer_id, courier_id, status, "
-      "COALESCE(created_at, '') "
-      "FROM transactions WHERE courier_id = ? AND status = 'shipping' "
-      "ORDER BY id DESC;";
+      "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
+      "COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+      "WHERE t.courier_id = ? AND t.status = 'shipping' "
+      "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -892,6 +996,13 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    
+    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.customerAddress = custAddr ? custAddr : "";
+    
+    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    trans.merchantAddress = merchAddr ? merchAddr : "";
+    
     transactions.push_back(trans);
   }
 
@@ -906,10 +1017,15 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
     return transactions;
 
   const char *sql =
-      "SELECT id, product_id, customer_id, courier_id, status, "
-      "COALESCE(created_at, '') "
-      "FROM transactions WHERE courier_id = ? AND status = 'delivered' "
-      "ORDER BY id DESC;";
+      "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
+      "COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+      "WHERE t.courier_id = ? AND t.status = 'delivered' "
+      "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -928,6 +1044,13 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    
+    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.customerAddress = custAddr ? custAddr : "";
+    
+    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    trans.merchantAddress = merchAddr ? merchAddr : "";
+    
     transactions.push_back(trans);
   }
 
@@ -1115,6 +1238,7 @@ public:
     dt->Columns->Add("Role", String::typeid);
     dt->Columns->Add("Saldo", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
+    dt->Columns->Add("Alamat", String::typeid);
 
     std::vector<UserData> users = NativeGetAllUsers();
     for (const auto &user : users) {
@@ -1124,6 +1248,7 @@ public:
       row["Role"] = gcnew String(user.role.c_str());
       row["Saldo"] = user.saldo;
       row["Status"] = user.isActive ? "Active" : "Inactive";
+      row["Alamat"] = gcnew String(user.alamat.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1137,6 +1262,18 @@ public:
 
   // Delete user
   static bool DeleteUser(int userID) { return NativeDeleteUser(userID); }
+
+  // Get user address
+  static String ^ GetUserAddress(int userID) {
+    std::string addr = NativeGetUserAddress(userID);
+    return gcnew String(addr.c_str());
+  }
+
+  // Update user address
+  static bool UpdateUserAddress(int userID, String ^ alamat) {
+    std::string addrNative = msclr::interop::marshal_as<std::string>(alamat);
+    return NativeUpdateUserAddress(userID, addrNative);
+  }
 
   // Get all income as DataTable
   static DataTable ^ GetAllIncomeTable() {
@@ -1169,7 +1306,7 @@ public:
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("CustomerID", Int32::typeid);
-    dt->Columns->Add("AffiliateID", Int32::typeid);
+    dt->Columns->Add("CourierID", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
 
@@ -1179,7 +1316,7 @@ public:
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
       row["CustomerID"] = trans.customerID;
-      row["AffiliateID"] = trans.affiliateID;
+      row["CourierID"] = trans.affiliateID;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       dt->Rows->Add(row);
@@ -1203,6 +1340,18 @@ public:
         result[7] = stats.inactiveUsers;
         return result;
       }
+
+      // Get income breakdown: [0]=total, [1]=app, [2]=merchant, [3]=courier
+      static array<int> ^
+          GetIncomeBreakdown() {
+            IncomeBreakdown breakdown = NativeGetIncomeBreakdown();
+            array<int> ^ result = gcnew array<int>(4);
+            result[0] = breakdown.totalIncome;
+            result[1] = breakdown.appIncome;
+            result[2] = breakdown.merchantIncome;
+            result[3] = breakdown.courierIncome;
+            return result;
+          }
 
       // ============ Merchant Functions ============
 
@@ -1364,6 +1513,8 @@ public:
     dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
+    dt->Columns->Add("Alamat Customer", String::typeid);
+    dt->Columns->Add("Alamat Merchant", String::typeid);
 
     std::vector<TransactionData> transactions = NativeGetPendingDeliveries();
     for (const auto &trans : transactions) {
@@ -1373,6 +1524,8 @@ public:
       row["CustomerID"] = trans.customerID;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
+      row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
+      row["Alamat Merchant"] = gcnew String(trans.merchantAddress.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1387,6 +1540,8 @@ public:
     dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
+    dt->Columns->Add("Alamat Customer", String::typeid);
+    dt->Columns->Add("Alamat Merchant", String::typeid);
 
     std::vector<TransactionData> transactions =
         NativeGetActiveDeliveries(courierID);
@@ -1397,6 +1552,8 @@ public:
       row["CustomerID"] = trans.customerID;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
+      row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
+      row["Alamat Merchant"] = gcnew String(trans.merchantAddress.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1411,6 +1568,8 @@ public:
     dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
+    dt->Columns->Add("Alamat Customer", String::typeid);
+    dt->Columns->Add("Alamat Merchant", String::typeid);
 
     std::vector<TransactionData> transactions =
         NativeGetDeliveryHistory(courierID);
@@ -1421,6 +1580,8 @@ public:
       row["CustomerID"] = trans.customerID;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
+      row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
+      row["Alamat Merchant"] = gcnew String(trans.merchantAddress.c_str());
       dt->Rows->Add(row);
     }
 

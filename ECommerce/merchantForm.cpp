@@ -10,6 +10,7 @@ System::Void merchantForm::merchantForm_Load(System::Object ^ sender,
   LoadDashboard();
   LoadProducts();
   LoadSales();
+  LoadProfile();
 }
 
 void merchantForm::LoadDashboard() {
@@ -18,6 +19,11 @@ void merchantForm::LoadDashboard() {
   lblTotalSales->Text = L"Total Penjualan: " + stats[1];
   lblTotalIncome->Text =
       L"Pendapatan: Rp " + String::Format("{0:N0}", stats[2]);
+}
+
+void merchantForm::LoadProfile() {
+  String ^ alamat = DatabaseManager::GetUserAddress(currentUserID);
+  txtAlamatToko->Text = alamat;
 }
 
 void merchantForm::LoadProducts() {
@@ -37,6 +43,19 @@ void merchantForm::ClearProductForm() {
   isEditMode = false;
   editProductID = 0;
   panelProduct->Visible = false;
+}
+
+System::Void merchantForm::btnSaveAlamat_Click(System::Object ^ sender,
+                                               System::EventArgs ^ e) {
+  String ^ alamat = txtAlamatToko->Text->Trim();
+  
+  if (DatabaseManager::UpdateUserAddress(currentUserID, alamat)) {
+    MessageBox::Show("Lokasi toko berhasil disimpan!", "Sukses",
+                     MessageBoxButtons::OK, MessageBoxIcon::Information);
+  } else {
+    MessageBox::Show("Gagal menyimpan lokasi toko!", "Error",
+                     MessageBoxButtons::OK, MessageBoxIcon::Error);
+  }
 }
 
 System::Void merchantForm::btnRefreshDashboard_Click(System::Object ^ sender,

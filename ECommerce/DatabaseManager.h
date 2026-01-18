@@ -25,6 +25,8 @@ public:
   static DataTable ^ GetAllUsersTable();
   static bool SetUserActive(int userID, bool isActive);
   static bool DeleteUser(int userID);
+  static String ^ GetUserAddress(int userID);
+  static bool UpdateUserAddress(int userID, String ^ alamat);
 
   // Admin functions - Income
   static DataTable ^ GetAllIncomeTable();
@@ -34,6 +36,7 @@ public:
 
   // Admin functions - Dashboard
   static array<int> ^ GetDashboardStats();
+  static array<int> ^ GetIncomeBreakdown();
 
   // ============ Merchant Functions ============
   static DataTable ^ GetProductsByMerchant(int merchantID);

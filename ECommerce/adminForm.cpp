@@ -18,10 +18,15 @@ void adminForm::LoadDashboardStats() {
   lblTotalCustomers->Text = L"Customers: " + stats[2];
   lblTotalCouriers->Text = L"Couriers: " + stats[3];
   lblTotalTransactions->Text = L"Total Transactions: " + stats[4];
-  lblTotalIncome->Text =
-      L"Total Income: Rp " + String::Format("{0:N0}", stats[5]);
   lblActiveUsers->Text = L"Active Users: " + stats[6];
   lblInactiveUsers->Text = L"Inactive Users: " + stats[7];
+
+  // Get income breakdown by type
+  array<int> ^ income = DatabaseManager::GetIncomeBreakdown();
+  lblTotalIncome->Text = L"Total Income: Rp " + String::Format("{0:N0}", income[0]);
+  lblAppIncome->Text = L"Aplikasi: Rp " + String::Format("{0:N0}", income[1]);
+  lblMerchantIncome->Text = L"Merchant: Rp " + String::Format("{0:N0}", income[2]);
+  lblCourierIncome->Text = L"Courier: Rp " + String::Format("{0:N0}", income[3]);
 }
 
 void adminForm::LoadUsers() {

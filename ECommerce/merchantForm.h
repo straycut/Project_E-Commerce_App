@@ -51,6 +51,9 @@ private:
 private:
   System::Windows::Forms::TabPage ^ tabSales;
 
+private:
+  System::Windows::Forms::TabPage ^ tabProfile;
+
   // Dashboard controls
 private:
   System::Windows::Forms::Label ^ lblTitle;
@@ -124,6 +127,22 @@ private:
 private:
   System::Windows::Forms::Button ^ btnRefreshSales;
 
+  // Profile/Location Controls
+private:
+  System::Windows::Forms::Label ^ lblProfileTitle;
+
+private:
+  System::Windows::Forms::Label ^ lblAlamatToko;
+
+private:
+  System::Windows::Forms::TextBox ^ txtAlamatToko;
+
+private:
+  System::Windows::Forms::Button ^ btnSaveAlamat;
+
+private:
+  System::Windows::Forms::Label ^ lblAlamatInfo;
+
   // Logout
 private:
   System::Windows::Forms::Button ^ btnLogout;
@@ -143,6 +162,7 @@ private:
     this->tabDashboard = (gcnew System::Windows::Forms::TabPage());
     this->tabProducts = (gcnew System::Windows::Forms::TabPage());
     this->tabSales = (gcnew System::Windows::Forms::TabPage());
+    this->tabProfile = (gcnew System::Windows::Forms::TabPage());
     this->lblTitle = (gcnew System::Windows::Forms::Label());
     this->lblTotalProducts = (gcnew System::Windows::Forms::Label());
     this->lblTotalSales = (gcnew System::Windows::Forms::Label());
@@ -166,6 +186,11 @@ private:
     this->lblSalesTitle = (gcnew System::Windows::Forms::Label());
     this->dgvSales = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshSales = (gcnew System::Windows::Forms::Button());
+    this->lblProfileTitle = (gcnew System::Windows::Forms::Label());
+    this->lblAlamatToko = (gcnew System::Windows::Forms::Label());
+    this->txtAlamatToko = (gcnew System::Windows::Forms::TextBox());
+    this->btnSaveAlamat = (gcnew System::Windows::Forms::Button());
+    this->lblAlamatInfo = (gcnew System::Windows::Forms::Label());
     this->btnLogout = (gcnew System::Windows::Forms::Button());
     this->tabControl->SuspendLayout();
     this->tabDashboard->SuspendLayout();
@@ -178,6 +203,7 @@ private:
     (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
          this->dgvSales))
         ->BeginInit();
+    this->tabProfile->SuspendLayout();
     this->SuspendLayout();
     //
     // tabControl
@@ -185,6 +211,7 @@ private:
     this->tabControl->Controls->Add(this->tabDashboard);
     this->tabControl->Controls->Add(this->tabProducts);
     this->tabControl->Controls->Add(this->tabSales);
+    this->tabControl->Controls->Add(this->tabProfile);
     this->tabControl->Location = System::Drawing::Point(12, 12);
     this->tabControl->Name = L"tabControl";
     this->tabControl->SelectedIndex = 0;
@@ -504,6 +531,78 @@ private:
     this->btnLogout->Click +=
         gcnew System::EventHandler(this, &merchantForm::btnLogout_Click);
     //
+    // tabProfile
+    //
+    this->tabProfile->Controls->Add(this->lblProfileTitle);
+    this->tabProfile->Controls->Add(this->lblAlamatToko);
+    this->tabProfile->Controls->Add(this->txtAlamatToko);
+    this->tabProfile->Controls->Add(this->btnSaveAlamat);
+    this->tabProfile->Controls->Add(this->lblAlamatInfo);
+    this->tabProfile->Location = System::Drawing::Point(4, 22);
+    this->tabProfile->Name = L"tabProfile";
+    this->tabProfile->Size = System::Drawing::Size(752, 454);
+    this->tabProfile->TabIndex = 3;
+    this->tabProfile->Text = L"Profil Toko";
+    this->tabProfile->UseVisualStyleBackColor = true;
+    //
+    // lblProfileTitle
+    //
+    this->lblProfileTitle->AutoSize = true;
+    this->lblProfileTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblProfileTitle->Location = System::Drawing::Point(15, 15);
+    this->lblProfileTitle->Name = L"lblProfileTitle";
+    this->lblProfileTitle->Size = System::Drawing::Size(150, 25);
+    this->lblProfileTitle->TabIndex = 0;
+    this->lblProfileTitle->Text = L"Profil Toko";
+    //
+    // lblAlamatToko
+    //
+    this->lblAlamatToko->AutoSize = true;
+    this->lblAlamatToko->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->lblAlamatToko->Location = System::Drawing::Point(15, 60);
+    this->lblAlamatToko->Name = L"lblAlamatToko";
+    this->lblAlamatToko->Size = System::Drawing::Size(120, 20);
+    this->lblAlamatToko->TabIndex = 1;
+    this->lblAlamatToko->Text = L"Lokasi Toko:";
+    //
+    // txtAlamatToko
+    //
+    this->txtAlamatToko->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->txtAlamatToko->Location = System::Drawing::Point(15, 85);
+    this->txtAlamatToko->Multiline = true;
+    this->txtAlamatToko->Name = L"txtAlamatToko";
+    this->txtAlamatToko->Size = System::Drawing::Size(450, 80);
+    this->txtAlamatToko->TabIndex = 2;
+    //
+    // btnSaveAlamat
+    //
+    this->btnSaveAlamat->BackColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnSaveAlamat->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
+    this->btnSaveAlamat->ForeColor = System::Drawing::Color::White;
+    this->btnSaveAlamat->Location = System::Drawing::Point(15, 180);
+    this->btnSaveAlamat->Name = L"btnSaveAlamat";
+    this->btnSaveAlamat->Size = System::Drawing::Size(150, 35);
+    this->btnSaveAlamat->TabIndex = 3;
+    this->btnSaveAlamat->Text = L"Simpan Lokasi";
+    this->btnSaveAlamat->UseVisualStyleBackColor = false;
+    this->btnSaveAlamat->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnSaveAlamat_Click);
+    //
+    // lblAlamatInfo
+    //
+    this->lblAlamatInfo->AutoSize = true;
+    this->lblAlamatInfo->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9));
+    this->lblAlamatInfo->ForeColor = System::Drawing::Color::Gray;
+    this->lblAlamatInfo->Location = System::Drawing::Point(15, 225);
+    this->lblAlamatInfo->Name = L"lblAlamatInfo";
+    this->lblAlamatInfo->Size = System::Drawing::Size(350, 15);
+    this->lblAlamatInfo->TabIndex = 4;
+    this->lblAlamatInfo->Text = L"Lokasi toko akan ditampilkan kepada kurir saat pengambilan barang.";
+
+    //
     // merchantForm
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
@@ -535,6 +634,8 @@ private:
     (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
          this->dgvSales))
         ->EndInit();
+    this->tabProfile->ResumeLayout(false);
+    this->tabProfile->PerformLayout();
     this->ResumeLayout(false);
   }
 #pragma endregion
@@ -563,6 +664,8 @@ private:
                                       System::EventArgs ^ e);
   System::Void btnRefreshSales_Click(System::Object ^ sender,
                                      System::EventArgs ^ e);
+  void LoadProfile();
+  System::Void btnSaveAlamat_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce
