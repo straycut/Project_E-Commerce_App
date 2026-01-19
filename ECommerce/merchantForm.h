@@ -112,10 +112,19 @@ private:
   System::Windows::Forms::TextBox ^ txtKomisi;
 
 private:
+  System::Windows::Forms::Label ^ lblStok;
+
+private:
+  System::Windows::Forms::TextBox ^ txtStok;
+
+private:
   System::Windows::Forms::Button ^ btnSaveProduct;
 
 private:
   System::Windows::Forms::Button ^ btnCancelProduct;
+
+private:
+  System::Windows::Forms::Button ^ btnAddStock;
 
   // Sales controls
 private:
@@ -181,8 +190,11 @@ private:
     this->txtHarga = (gcnew System::Windows::Forms::TextBox());
     this->lblKomisi = (gcnew System::Windows::Forms::Label());
     this->txtKomisi = (gcnew System::Windows::Forms::TextBox());
+    this->lblStok = (gcnew System::Windows::Forms::Label());
+    this->txtStok = (gcnew System::Windows::Forms::TextBox());
     this->btnSaveProduct = (gcnew System::Windows::Forms::Button());
     this->btnCancelProduct = (gcnew System::Windows::Forms::Button());
+    this->btnAddStock = (gcnew System::Windows::Forms::Button());
     this->lblSalesTitle = (gcnew System::Windows::Forms::Label());
     this->dgvSales = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshSales = (gcnew System::Windows::Forms::Button());
@@ -238,10 +250,9 @@ private:
     this->lblTitle->AutoSize = true;
     this->lblTitle->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
+    this->lblTitle->ForeColor = System::Drawing::Color::FromArgb(0, 122, 204);
     this->lblTitle->Location = System::Drawing::Point(20, 20);
     this->lblTitle->Name = L"lblTitle";
-    this->lblTitle->Size = System::Drawing::Size(250, 32);
-    this->lblTitle->TabIndex = 0;
     this->lblTitle->Text = L"Merchant Dashboard";
     //
     // lblTotalProducts
@@ -296,6 +307,7 @@ private:
     this->tabProducts->Controls->Add(this->btnAddProduct);
     this->tabProducts->Controls->Add(this->btnEditProduct);
     this->tabProducts->Controls->Add(this->btnDeleteProduct);
+    this->tabProducts->Controls->Add(this->btnAddStock);
     this->tabProducts->Controls->Add(this->panelProduct);
     this->tabProducts->Location = System::Drawing::Point(4, 22);
     this->tabProducts->Name = L"tabProducts";
@@ -390,11 +402,13 @@ private:
     this->panelProduct->Controls->Add(this->txtHarga);
     this->panelProduct->Controls->Add(this->lblKomisi);
     this->panelProduct->Controls->Add(this->txtKomisi);
+    this->panelProduct->Controls->Add(this->lblStok);
+    this->panelProduct->Controls->Add(this->txtStok);
     this->panelProduct->Controls->Add(this->btnSaveProduct);
     this->panelProduct->Controls->Add(this->btnCancelProduct);
     this->panelProduct->Location = System::Drawing::Point(480, 50);
     this->panelProduct->Name = L"panelProduct";
-    this->panelProduct->Size = System::Drawing::Size(250, 280);
+    this->panelProduct->Size = System::Drawing::Size(260, 320);
     this->panelProduct->TabIndex = 6;
     this->panelProduct->Visible = false;
     //
@@ -447,13 +461,31 @@ private:
     this->txtKomisi->TabIndex = 5;
     this->txtKomisi->Text = L"5";
     //
+    // lblStok
+    //
+    this->lblStok->AutoSize = true;
+    this->lblStok->Location = System::Drawing::Point(15, 190);
+    this->lblStok->Name = L"lblStok";
+    this->lblStok->Text = L"Stok:";
+    //
+    // txtStok
+    //
+    this->txtStok->Location = System::Drawing::Point(15, 210);
+    this->txtStok->Name = L"txtStok";
+    this->txtStok->Size = System::Drawing::Size(210, 20);
+    this->txtStok->TabIndex = 6;
+    this->txtStok->Text = L"0";
+    //
     // btnSaveProduct
     //
-    this->btnSaveProduct->BackColor = System::Drawing::Color::LightGreen;
-    this->btnSaveProduct->Location = System::Drawing::Point(15, 210);
+    this->btnSaveProduct->BackColor =
+        System::Drawing::Color::FromArgb(40, 167, 69);
+    this->btnSaveProduct->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnSaveProduct->ForeColor = System::Drawing::Color::White;
+    this->btnSaveProduct->Location = System::Drawing::Point(15, 250);
     this->btnSaveProduct->Name = L"btnSaveProduct";
     this->btnSaveProduct->Size = System::Drawing::Size(100, 30);
-    this->btnSaveProduct->TabIndex = 6;
+    this->btnSaveProduct->TabIndex = 7;
     this->btnSaveProduct->Text = L"Simpan";
     this->btnSaveProduct->UseVisualStyleBackColor = false;
     this->btnSaveProduct->Click +=
@@ -461,14 +493,29 @@ private:
     //
     // btnCancelProduct
     //
-    this->btnCancelProduct->Location = System::Drawing::Point(125, 210);
+    this->btnCancelProduct->Location = System::Drawing::Point(125, 250);
     this->btnCancelProduct->Name = L"btnCancelProduct";
     this->btnCancelProduct->Size = System::Drawing::Size(100, 30);
-    this->btnCancelProduct->TabIndex = 7;
+    this->btnCancelProduct->TabIndex = 8;
     this->btnCancelProduct->Text = L"Batal";
     this->btnCancelProduct->UseVisualStyleBackColor = true;
     this->btnCancelProduct->Click +=
         gcnew System::EventHandler(this, &merchantForm::btnCancelProduct_Click);
+    //
+    // btnAddStock
+    //
+    this->btnAddStock->BackColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnAddStock->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnAddStock->ForeColor = System::Drawing::Color::White;
+    this->btnAddStock->Location = System::Drawing::Point(15, 380);
+    this->btnAddStock->Name = L"btnAddStock";
+    this->btnAddStock->Size = System::Drawing::Size(100, 30);
+    this->btnAddStock->TabIndex = 8;
+    this->btnAddStock->Text = L"+ Stok";
+    this->btnAddStock->UseVisualStyleBackColor = false;
+    this->btnAddStock->Click +=
+        gcnew System::EventHandler(this, &merchantForm::btnAddStock_Click);
     //
     // tabSales
     //
@@ -577,7 +624,8 @@ private:
     //
     // btnSaveAlamat
     //
-    this->btnSaveAlamat->BackColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnSaveAlamat->BackColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
     this->btnSaveAlamat->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
     this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
@@ -600,13 +648,15 @@ private:
     this->lblAlamatInfo->Name = L"lblAlamatInfo";
     this->lblAlamatInfo->Size = System::Drawing::Size(350, 15);
     this->lblAlamatInfo->TabIndex = 4;
-    this->lblAlamatInfo->Text = L"Lokasi toko akan ditampilkan kepada kurir saat pengambilan barang.";
+    this->lblAlamatInfo->Text =
+        L"Lokasi toko akan ditampilkan kepada kurir saat pengambilan barang.";
 
     //
     // merchantForm
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
     this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+    this->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
     this->ClientSize = System::Drawing::Size(784, 541);
     this->Controls->Add(this->tabControl);
     this->Controls->Add(this->btnLogout);
@@ -665,7 +715,10 @@ private:
   System::Void btnRefreshSales_Click(System::Object ^ sender,
                                      System::EventArgs ^ e);
   void LoadProfile();
-  System::Void btnSaveAlamat_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnSaveAlamat_Click(System::Object ^ sender,
+                                   System::EventArgs ^ e);
+  System::Void btnAddStock_Click(System::Object ^ sender,
+                                 System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

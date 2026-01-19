@@ -25,6 +25,13 @@ public:
     currentUserID = 0;
     currentUsername = "";
     currentSaldo = 0;
+    // Initialize cart DataTable
+    cartTable = gcnew DataTable();
+    cartTable->Columns->Add("ID", Int32::typeid);
+    cartTable->Columns->Add("Nama", String::typeid);
+    cartTable->Columns->Add("Harga", Int32::typeid);
+    cartTable->Columns->Add("Jumlah", Int32::typeid);
+    cartTable->Columns->Add("Total", Int32::typeid);
   }
 
   customerForm(int userID, String ^ username) {
@@ -32,6 +39,13 @@ public:
     currentUserID = userID;
     currentUsername = username;
     currentSaldo = 0;
+    // Initialize cart DataTable
+    cartTable = gcnew DataTable();
+    cartTable->Columns->Add("ID", Int32::typeid);
+    cartTable->Columns->Add("Nama", String::typeid);
+    cartTable->Columns->Add("Harga", Int32::typeid);
+    cartTable->Columns->Add("Jumlah", Int32::typeid);
+    cartTable->Columns->Add("Total", Int32::typeid);
   }
 
 protected:
@@ -51,6 +65,12 @@ private:
   System::Windows::Forms::TabPage ^ tabHistory;
 
 private:
+  System::Windows::Forms::TabPage ^ tabCart;
+
+private:
+  DataTable ^ cartTable;
+
+private:
   System::Windows::Forms::TabPage ^ tabSaldo;
 
   // Catalog
@@ -68,6 +88,31 @@ private:
 
 private:
   System::Windows::Forms::Label ^ lblSaldoInfo;
+
+private:
+  System::Windows::Forms::NumericUpDown ^ nudQuantity;
+
+private:
+  System::Windows::Forms::Label ^ lblQuantity;
+
+private:
+  System::Windows::Forms::Button ^ btnAddToCart;
+
+  // Cart Tab Controls
+private:
+  System::Windows::Forms::Label ^ lblCartTitle;
+
+private:
+  System::Windows::Forms::DataGridView ^ dgvCart;
+
+private:
+  System::Windows::Forms::Button ^ btnRemoveFromCart;
+
+private:
+  System::Windows::Forms::Button ^ btnCheckout;
+
+private:
+  System::Windows::Forms::Label ^ lblCartTotal;
 
   // History
 private:
@@ -124,13 +169,21 @@ private:
     this->tabControl = (gcnew System::Windows::Forms::TabControl());
     this->tabCatalog = (gcnew System::Windows::Forms::TabPage());
     this->tabHistory = (gcnew System::Windows::Forms::TabPage());
+    this->tabCart = (gcnew System::Windows::Forms::TabPage());
     this->tabSaldo = (gcnew System::Windows::Forms::TabPage());
     this->tabProfile = (gcnew System::Windows::Forms::TabPage());
     this->lblCatalogTitle = (gcnew System::Windows::Forms::Label());
     this->dgvProducts = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshCatalog = (gcnew System::Windows::Forms::Button());
-    this->btnBuy = (gcnew System::Windows::Forms::Button());
+    this->nudQuantity = (gcnew System::Windows::Forms::NumericUpDown());
+    this->lblQuantity = (gcnew System::Windows::Forms::Label());
+    this->btnAddToCart = (gcnew System::Windows::Forms::Button());
     this->lblSaldoInfo = (gcnew System::Windows::Forms::Label());
+    this->lblCartTitle = (gcnew System::Windows::Forms::Label());
+    this->dgvCart = (gcnew System::Windows::Forms::DataGridView());
+    this->btnRemoveFromCart = (gcnew System::Windows::Forms::Button());
+    this->btnCheckout = (gcnew System::Windows::Forms::Button());
+    this->lblCartTotal = (gcnew System::Windows::Forms::Label());
     this->lblHistoryTitle = (gcnew System::Windows::Forms::Label());
     this->dgvHistory = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshHistory = (gcnew System::Windows::Forms::Button());
@@ -150,6 +203,13 @@ private:
     (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
          this->dgvProducts))
         ->BeginInit();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->nudQuantity))
+        ->BeginInit();
+    this->tabCart->SuspendLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvCart))
+        ->BeginInit();
     this->tabHistory->SuspendLayout();
     (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
          this->dgvHistory))
@@ -161,6 +221,7 @@ private:
     // tabControl
     //
     this->tabControl->Controls->Add(this->tabCatalog);
+    this->tabControl->Controls->Add(this->tabCart);
     this->tabControl->Controls->Add(this->tabHistory);
     this->tabControl->Controls->Add(this->tabSaldo);
     this->tabControl->Controls->Add(this->tabProfile);
@@ -175,7 +236,9 @@ private:
     this->tabCatalog->Controls->Add(this->lblCatalogTitle);
     this->tabCatalog->Controls->Add(this->dgvProducts);
     this->tabCatalog->Controls->Add(this->btnRefreshCatalog);
-    this->tabCatalog->Controls->Add(this->btnBuy);
+    this->tabCatalog->Controls->Add(this->lblQuantity);
+    this->tabCatalog->Controls->Add(this->nudQuantity);
+    this->tabCatalog->Controls->Add(this->btnAddToCart);
     this->tabCatalog->Controls->Add(this->lblSaldoInfo);
     this->tabCatalog->Location = System::Drawing::Point(4, 22);
     this->tabCatalog->Name = L"tabCatalog";
@@ -190,6 +253,8 @@ private:
     this->lblCatalogTitle->AutoSize = true;
     this->lblCatalogTitle->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblCatalogTitle->ForeColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
     this->lblCatalogTitle->Location = System::Drawing::Point(15, 15);
     this->lblCatalogTitle->Name = L"lblCatalogTitle";
     this->lblCatalogTitle->Size = System::Drawing::Size(150, 25);
@@ -224,19 +289,39 @@ private:
     this->btnRefreshCatalog->Click += gcnew System::EventHandler(
         this, &customerForm::btnRefreshCatalog_Click);
     //
-    // btnBuy
+    // lblQuantity
     //
-    this->btnBuy->BackColor = System::Drawing::Color::LightGreen;
-    this->btnBuy->Font = (gcnew System::Drawing::Font(
-        L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
-    this->btnBuy->Location = System::Drawing::Point(125, 380);
-    this->btnBuy->Name = L"btnBuy";
-    this->btnBuy->Size = System::Drawing::Size(150, 30);
-    this->btnBuy->TabIndex = 3;
-    this->btnBuy->Text = L"Beli Produk";
-    this->btnBuy->UseVisualStyleBackColor = false;
-    this->btnBuy->Click +=
-        gcnew System::EventHandler(this, &customerForm::btnBuy_Click);
+    this->lblQuantity->AutoSize = true;
+    this->lblQuantity->Location = System::Drawing::Point(130, 385);
+    this->lblQuantity->Name = L"lblQuantity";
+    this->lblQuantity->Text = L"Jumlah:";
+    //
+    // nudQuantity
+    //
+    this->nudQuantity->Location = System::Drawing::Point(185, 382);
+    this->nudQuantity->Minimum =
+        System::Decimal(gcnew cli::array<System::Int32>(4){1, 0, 0, 0});
+    this->nudQuantity->Name = L"nudQuantity";
+    this->nudQuantity->Size = System::Drawing::Size(60, 20);
+    this->nudQuantity->Value =
+        System::Decimal(gcnew cli::array<System::Int32>(4){1, 0, 0, 0});
+    //
+    // btnAddToCart
+    //
+    this->btnAddToCart->BackColor =
+        System::Drawing::Color::FromArgb(40, 167, 69);
+    this->btnAddToCart->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnAddToCart->ForeColor = System::Drawing::Color::White;
+    this->btnAddToCart->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+    this->btnAddToCart->Location = System::Drawing::Point(260, 378);
+    this->btnAddToCart->Name = L"btnAddToCart";
+    this->btnAddToCart->Size = System::Drawing::Size(150, 30);
+    this->btnAddToCart->TabIndex = 3;
+    this->btnAddToCart->Text = L"+ Keranjang";
+    this->btnAddToCart->UseVisualStyleBackColor = false;
+    this->btnAddToCart->Click +=
+        gcnew System::EventHandler(this, &customerForm::btnAddToCart_Click);
     //
     // lblSaldoInfo
     //
@@ -249,6 +334,86 @@ private:
     this->lblSaldoInfo->Size = System::Drawing::Size(100, 21);
     this->lblSaldoInfo->TabIndex = 4;
     this->lblSaldoInfo->Text = L"Saldo: Rp 0";
+    //
+    // tabCart
+    //
+    this->tabCart->Controls->Add(this->lblCartTitle);
+    this->tabCart->Controls->Add(this->dgvCart);
+    this->tabCart->Controls->Add(this->btnRemoveFromCart);
+    this->tabCart->Controls->Add(this->btnCheckout);
+    this->tabCart->Controls->Add(this->lblCartTotal);
+    this->tabCart->Location = System::Drawing::Point(4, 22);
+    this->tabCart->Name = L"tabCart";
+    this->tabCart->Size = System::Drawing::Size(752, 454);
+    this->tabCart->TabIndex = 5;
+    this->tabCart->Text = L"Keranjang";
+    this->tabCart->UseVisualStyleBackColor = true;
+    //
+    // lblCartTitle
+    //
+    this->lblCartTitle->AutoSize = true;
+    this->lblCartTitle->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblCartTitle->Location = System::Drawing::Point(15, 15);
+    this->lblCartTitle->Name = L"lblCartTitle";
+    this->lblCartTitle->Text = L"Keranjang Belanja";
+    //
+    // dgvCart
+    //
+    this->dgvCart->AllowUserToAddRows = false;
+    this->dgvCart->AllowUserToDeleteRows = false;
+    this->dgvCart->AutoSizeColumnsMode =
+        System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
+    this->dgvCart->ColumnHeadersHeightSizeMode = System::Windows::Forms::
+        DataGridViewColumnHeadersHeightSizeMode::AutoSize;
+    this->dgvCart->Location = System::Drawing::Point(15, 50);
+    this->dgvCart->MultiSelect = false;
+    this->dgvCart->Name = L"dgvCart";
+    this->dgvCart->ReadOnly = true;
+    this->dgvCart->SelectionMode =
+        System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
+    this->dgvCart->Size = System::Drawing::Size(720, 300);
+    this->dgvCart->TabIndex = 1;
+    //
+    // btnRemoveFromCart
+    //
+    this->btnRemoveFromCart->BackColor =
+        System::Drawing::Color::FromArgb(220, 53, 69);
+    this->btnRemoveFromCart->FlatStyle =
+        System::Windows::Forms::FlatStyle::Flat;
+    this->btnRemoveFromCart->ForeColor = System::Drawing::Color::White;
+    this->btnRemoveFromCart->Location = System::Drawing::Point(15, 360);
+    this->btnRemoveFromCart->Name = L"btnRemoveFromCart";
+    this->btnRemoveFromCart->Size = System::Drawing::Size(120, 30);
+    this->btnRemoveFromCart->Text = L"Hapus Item";
+    this->btnRemoveFromCart->UseVisualStyleBackColor = false;
+    this->btnRemoveFromCart->Click += gcnew System::EventHandler(
+        this, &customerForm::btnRemoveFromCart_Click);
+    //
+    // btnCheckout
+    //
+    this->btnCheckout->BackColor =
+        System::Drawing::Color::FromArgb(40, 167, 69);
+    this->btnCheckout->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnCheckout->ForeColor = System::Drawing::Color::White;
+    this->btnCheckout->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
+    this->btnCheckout->Location = System::Drawing::Point(550, 355);
+    this->btnCheckout->Name = L"btnCheckout";
+    this->btnCheckout->Size = System::Drawing::Size(180, 40);
+    this->btnCheckout->Text = L"Checkout";
+    this->btnCheckout->UseVisualStyleBackColor = false;
+    this->btnCheckout->Click +=
+        gcnew System::EventHandler(this, &customerForm::btnCheckout_Click);
+    //
+    // lblCartTotal
+    //
+    this->lblCartTotal->AutoSize = true;
+    this->lblCartTotal->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblCartTotal->Location = System::Drawing::Point(350, 365);
+    this->lblCartTotal->Name = L"lblCartTotal";
+    this->lblCartTotal->Text = L"Total: Rp 0";
     //
     // tabHistory
     //
@@ -267,10 +432,10 @@ private:
     this->lblHistoryTitle->AutoSize = true;
     this->lblHistoryTitle->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+    this->lblHistoryTitle->ForeColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
     this->lblHistoryTitle->Location = System::Drawing::Point(15, 15);
     this->lblHistoryTitle->Name = L"lblHistoryTitle";
-    this->lblHistoryTitle->Size = System::Drawing::Size(200, 25);
-    this->lblHistoryTitle->TabIndex = 0;
     this->lblHistoryTitle->Text = L"Riwayat Pembelian";
     //
     // dgvHistory
@@ -414,7 +579,8 @@ private:
     //
     // btnSaveAlamat
     //
-    this->btnSaveAlamat->BackColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnSaveAlamat->BackColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
     this->btnSaveAlamat->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
     this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
@@ -437,11 +603,17 @@ private:
     this->lblAlamatInfo->Name = L"lblAlamatInfo";
     this->lblAlamatInfo->Size = System::Drawing::Size(350, 15);
     this->lblAlamatInfo->TabIndex = 4;
-    this->lblAlamatInfo->Text = L"Alamat ini akan digunakan untuk pengiriman produk yang Anda beli.";
+    this->lblAlamatInfo->Text =
+        L"Alamat ini akan digunakan untuk pengiriman produk yang Anda beli.";
     //
     // btnLogout
     //
-    this->btnLogout->BackColor = System::Drawing::Color::LightGray;
+    this->btnLogout->BackColor = System::Drawing::Color::FromArgb(220, 53, 69);
+    this->btnLogout->FlatAppearance->BorderSize = 0;
+    this->btnLogout->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnLogout->ForeColor = System::Drawing::Color::White;
+    this->btnLogout->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
     this->btnLogout->Location = System::Drawing::Point(680, 500);
     this->btnLogout->Name = L"btnLogout";
     this->btnLogout->Size = System::Drawing::Size(90, 30);
@@ -455,6 +627,7 @@ private:
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
     this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+    this->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
     this->ClientSize = System::Drawing::Size(784, 541);
     this->Controls->Add(this->tabControl);
     this->Controls->Add(this->btnLogout);
@@ -472,6 +645,14 @@ private:
     this->tabCatalog->PerformLayout();
     (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
          this->dgvProducts))
+        ->EndInit();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->nudQuantity))
+        ->EndInit();
+    this->tabCart->ResumeLayout(false);
+    this->tabCart->PerformLayout();
+    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
+         this->dgvCart))
         ->EndInit();
     this->tabHistory->ResumeLayout(false);
     this->tabHistory->PerformLayout();
@@ -496,11 +677,18 @@ private:
   void LoadProfile();
   System::Void btnRefreshCatalog_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
-  System::Void btnBuy_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnAddToCart_Click(System::Object ^ sender,
+                                  System::EventArgs ^ e);
+  System::Void btnRemoveFromCart_Click(System::Object ^ sender,
+                                       System::EventArgs ^ e);
+  System::Void btnCheckout_Click(System::Object ^ sender,
+                                 System::EventArgs ^ e);
+  void UpdateCartTotal();
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
   System::Void btnTopUp_Click(System::Object ^ sender, System::EventArgs ^ e);
-  System::Void btnSaveAlamat_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnSaveAlamat_Click(System::Object ^ sender,
+                                   System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

@@ -40,6 +40,7 @@ void merchantForm::ClearProductForm() {
   txtNamaProduk->Text = "";
   txtHarga->Text = "";
   txtKomisi->Text = "5";
+  txtStok->Text = "0";
   isEditMode = false;
   editProductID = 0;
   panelProduct->Visible = false;
@@ -48,7 +49,7 @@ void merchantForm::ClearProductForm() {
 System::Void merchantForm::btnSaveAlamat_Click(System::Object ^ sender,
                                                System::EventArgs ^ e) {
   String ^ alamat = txtAlamatToko->Text->Trim();
-  
+
   if (DatabaseManager::UpdateUserAddress(currentUserID, alamat)) {
     MessageBox::Show("Lokasi toko berhasil disimpan!", "Sukses",
                      MessageBoxButtons::OK, MessageBoxIcon::Information);
@@ -77,6 +78,7 @@ System::Void merchantForm::btnAddProduct_Click(System::Object ^ sender,
   txtNamaProduk->Text = "";
   txtHarga->Text = "";
   txtKomisi->Text = "5";
+  txtStok->Text = "0";
   panelProduct->Visible = true;
   txtNamaProduk->Focus();
 }
@@ -98,6 +100,8 @@ System::Void merchantForm::btnEditProduct_Click(System::Object ^ sender,
       dgvProducts->SelectedRows[0]->Cells["Harga"]->Value->ToString();
   txtKomisi->Text =
       dgvProducts->SelectedRows[0]->Cells["Komisi"]->Value->ToString();
+  txtStok->Text =
+      dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
   panelProduct->Visible = true;
   txtNamaProduk->Focus();
 }
@@ -156,14 +160,21 @@ System::Void merchantForm::btnSaveProduct_Click(System::Object ^ sender,
     return;
   }
 
+  int stok = 0;
+  if (!Int32::TryParse(txtStok->Text, stok) || stok < 0) {
+    MessageBox::Show("Stok harus berupa angka positif!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
   bool success = false;
 
   if (isEditMode) {
     success = DatabaseManager::UpdateProduct(editProductID, txtNamaProduk->Text,
-                                             harga, komisi);
+                                             harga, komisi, stok);
   } else {
     success = DatabaseManager::AddProduct(txtNamaProduk->Text, harga, komisi,
-                                          currentUserID);
+                                          stok, currentUserID);
   }
 
   if (success) {
@@ -193,6 +204,30 @@ System::Void merchantForm::btnRefreshSales_Click(System::Object ^ sender,
 System::Void merchantForm::btnLogout_Click(System::Object ^ sender,
                                            System::EventArgs ^ e) {
   this->Close();
+}
+
+System::Void merchantForm::btnAddStock_Click(System::Object ^ sender,
+                                             System::EventArgs ^ e) {
+  if (dgvProducts->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih produk untuk menambah stok!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  isEditMode = true;
+  editProductID =
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+  txtNamaProduk->Text =
+      dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
+  txtHarga->Text =
+      dgvProducts->SelectedRows[0]->Cells["Harga"]->Value->ToString();
+  txtKomisi->Text =
+      dgvProducts->SelectedRows[0]->Cells["Komisi"]->Value->ToString();
+  txtStok->Text =
+      dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
+  panelProduct->Visible = true;
+  txtStok->Focus();
+  txtStok->SelectAll();
 }
 
 } // namespace ECommerce

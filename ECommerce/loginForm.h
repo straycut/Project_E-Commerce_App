@@ -80,77 +80,95 @@ private:
     this->btnMasuk = (gcnew System::Windows::Forms::Button());
     this->SuspendLayout();
     //
-    // label1
+    // label1 - Header Title
     //
     this->label1->AutoSize = true;
     this->label1->Font = (gcnew System::Drawing::Font(
-        L"Microsoft Sans Serif", 14, System::Drawing::FontStyle::Bold));
-    this->label1->Location = System::Drawing::Point(100, 50);
+        L"Segoe UI", 20, System::Drawing::FontStyle::Bold));
+    this->label1->ForeColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->label1->Location = System::Drawing::Point(85, 40);
     this->label1->Name = L"label1";
-    this->label1->Size = System::Drawing::Size(180, 24);
+    this->label1->Size = System::Drawing::Size(220, 37);
     this->label1->TabIndex = 0;
-    this->label1->Text = L"Login E-Commerce";
+    this->label1->Text = L"E-Commerce";
     //
     // labelNama
     //
     this->labelNama->AutoSize = true;
-    this->labelNama->Location = System::Drawing::Point(101, 110);
+    this->labelNama->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10));
+    this->labelNama->ForeColor = System::Drawing::Color::FromArgb(33, 37, 41);
+    this->labelNama->Location = System::Drawing::Point(70, 100);
     this->labelNama->Name = L"labelNama";
-    this->labelNama->Size = System::Drawing::Size(55, 13);
-    this->labelNama->TabIndex = 1;
     this->labelNama->Text = L"Username";
     //
     // labelSandi
     //
     this->labelSandi->AutoSize = true;
-    this->labelSandi->Location = System::Drawing::Point(101, 170);
+    this->labelSandi->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10));
+    this->labelSandi->ForeColor = System::Drawing::Color::FromArgb(33, 37, 41);
+    this->labelSandi->Location = System::Drawing::Point(70, 170);
     this->labelSandi->Name = L"labelSandi";
-    this->labelSandi->Size = System::Drawing::Size(53, 13);
-    this->labelSandi->TabIndex = 2;
     this->labelSandi->Text = L"Password";
     //
     // textBoxNama
     //
-    this->textBoxNama->Location = System::Drawing::Point(104, 126);
+    this->textBoxNama->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->textBoxNama->Location = System::Drawing::Point(74, 125);
     this->textBoxNama->Name = L"textBoxNama";
-    this->textBoxNama->Size = System::Drawing::Size(171, 20);
-    this->textBoxNama->TabIndex = 3;
+    this->textBoxNama->Size = System::Drawing::Size(240, 27);
+    this->textBoxNama->TabIndex = 1;
     //
     // textBoxSandi
     //
-    this->textBoxSandi->Location = System::Drawing::Point(104, 186);
+    this->textBoxSandi->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+    this->textBoxSandi->Location = System::Drawing::Point(74, 195);
     this->textBoxSandi->Name = L"textBoxSandi";
     this->textBoxSandi->PasswordChar = '*';
-    this->textBoxSandi->Size = System::Drawing::Size(171, 20);
-    this->textBoxSandi->TabIndex = 4;
+    this->textBoxSandi->Size = System::Drawing::Size(240, 27);
+    this->textBoxSandi->TabIndex = 2;
     //
-    // btnDaftar
+    // btnMasuk - Primary Button
     //
-    this->btnDaftar->Location = System::Drawing::Point(104, 230);
-    this->btnDaftar->Name = L"btnDaftar";
-    this->btnDaftar->Size = System::Drawing::Size(75, 30);
-    this->btnDaftar->TabIndex = 5;
-    this->btnDaftar->Text = L"Daftar";
-    this->btnDaftar->UseVisualStyleBackColor = true;
-    this->btnDaftar->Click +=
-        gcnew System::EventHandler(this, &loginF::btnDaftar_Click);
-    //
-    // btnMasuk
-    //
-    this->btnMasuk->Location = System::Drawing::Point(200, 230);
+    this->btnMasuk->BackColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnMasuk->FlatAppearance->BorderSize = 0;
+    this->btnMasuk->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnMasuk->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
+    this->btnMasuk->ForeColor = System::Drawing::Color::White;
+    this->btnMasuk->Location = System::Drawing::Point(74, 245);
     this->btnMasuk->Name = L"btnMasuk";
-    this->btnMasuk->Size = System::Drawing::Size(75, 30);
-    this->btnMasuk->TabIndex = 6;
+    this->btnMasuk->Size = System::Drawing::Size(240, 40);
+    this->btnMasuk->TabIndex = 3;
     this->btnMasuk->Text = L"Masuk";
-    this->btnMasuk->UseVisualStyleBackColor = true;
+    this->btnMasuk->UseVisualStyleBackColor = false;
     this->btnMasuk->Click +=
         gcnew System::EventHandler(this, &loginF::btnMasuk_Click);
     //
-    // loginF
+    // btnDaftar - Secondary Button
+    //
+    this->btnDaftar->BackColor = System::Drawing::Color::White;
+    this->btnDaftar->FlatAppearance->BorderColor =
+        System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnDaftar->FlatAppearance->BorderSize = 2;
+    this->btnDaftar->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnDaftar->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
+    this->btnDaftar->ForeColor = System::Drawing::Color::FromArgb(0, 122, 204);
+    this->btnDaftar->Location = System::Drawing::Point(74, 295);
+    this->btnDaftar->Name = L"btnDaftar";
+    this->btnDaftar->Size = System::Drawing::Size(240, 35);
+    this->btnDaftar->TabIndex = 4;
+    this->btnDaftar->Text = L"Belum punya akun? Daftar";
+    this->btnDaftar->UseVisualStyleBackColor = false;
+    this->btnDaftar->Click +=
+        gcnew System::EventHandler(this, &loginF::btnDaftar_Click);
+    //
+    // loginF - Form
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
     this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-    this->ClientSize = System::Drawing::Size(384, 300);
+    this->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
+    this->ClientSize = System::Drawing::Size(400, 380);
     this->Controls->Add(this->btnMasuk);
     this->Controls->Add(this->btnDaftar);
     this->Controls->Add(this->textBoxSandi);
@@ -158,6 +176,9 @@ private:
     this->Controls->Add(this->labelSandi);
     this->Controls->Add(this->labelNama);
     this->Controls->Add(this->label1);
+    this->FormBorderStyle =
+        System::Windows::Forms::FormBorderStyle::FixedSingle;
+    this->MaximizeBox = false;
     this->Name = L"loginF";
     this->StartPosition =
         System::Windows::Forms::FormStartPosition::CenterScreen;

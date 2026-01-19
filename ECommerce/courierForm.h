@@ -183,10 +183,9 @@ private:
     this->lblTitle->AutoSize = true;
     this->lblTitle->Font = (gcnew System::Drawing::Font(
         L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
+    this->lblTitle->ForeColor = System::Drawing::Color::FromArgb(0, 122, 204);
     this->lblTitle->Location = System::Drawing::Point(20, 20);
     this->lblTitle->Name = L"lblTitle";
-    this->lblTitle->Size = System::Drawing::Size(220, 32);
-    this->lblTitle->TabIndex = 0;
     this->lblTitle->Text = L"Courier Dashboard";
     //
     // lblTodayDeliveries
@@ -416,7 +415,12 @@ private:
     //
     // btnLogout
     //
-    this->btnLogout->BackColor = System::Drawing::Color::LightGray;
+    this->btnLogout->BackColor = System::Drawing::Color::FromArgb(220, 53, 69);
+    this->btnLogout->FlatAppearance->BorderSize = 0;
+    this->btnLogout->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnLogout->ForeColor = System::Drawing::Color::White;
+    this->btnLogout->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
     this->btnLogout->Location = System::Drawing::Point(680, 500);
     this->btnLogout->Name = L"btnLogout";
     this->btnLogout->Size = System::Drawing::Size(90, 30);
@@ -430,6 +434,7 @@ private:
     //
     this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
     this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+    this->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
     this->ClientSize = System::Drawing::Size(784, 541);
     this->Controls->Add(this->tabControl);
     this->Controls->Add(this->btnLogout);

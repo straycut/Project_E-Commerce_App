@@ -18,7 +18,7 @@ struct UserData {
   std::string password;
   std::string role;
   int saldo;
-  int isActive; // 1 = active, 0 = inactive
+  int isActive;       // 1 = active, 0 = inactive
   std::string alamat; // address
 };
 
@@ -27,7 +27,9 @@ struct ProductData {
   std::string nama;
   int harga;
   int komisi;
+  int stok;
   int merchantID;
+  std::string merchantName;
 };
 
 struct TransactionData {
@@ -118,19 +120,23 @@ static bool NativeInitialize() {
   ExecuteSQL("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
   ExecuteSQL("ALTER TABLE users ADD COLUMN alamat TEXT DEFAULT '';");
 
-  // Create Products table
+  // Create Products table with stok column
   const char *createProductsSQL =
       "CREATE TABLE IF NOT EXISTS products ("
       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
       "nama TEXT NOT NULL,"
       "harga INTEGER NOT NULL,"
       "komisi INTEGER NOT NULL,"
+      "stok INTEGER DEFAULT 0,"
       "merchant_id INTEGER,"
       "FOREIGN KEY (merchant_id) REFERENCES users(id)"
       ");";
 
   if (!ExecuteSQL(createProductsSQL))
     return false;
+
+  // Add stok column if not exists (for existing databases)
+  ExecuteSQL("ALTER TABLE products ADD COLUMN stok INTEGER DEFAULT 0;");
 
   // Create Transactions table
   const char *createTransactionsSQL =
@@ -251,8 +257,9 @@ static std::vector<UserData> NativeGetAllUsers() {
   if (g_db == nullptr)
     return users;
 
-  const char *sql = "SELECT id, username, password, role, saldo, "
-                    "COALESCE(is_active, 1), COALESCE(alamat, '') FROM users ORDER BY id;";
+  const char *sql =
+      "SELECT id, username, password, role, saldo, "
+      "COALESCE(is_active, 1), COALESCE(alamat, '') FROM users ORDER BY id;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -269,7 +276,8 @@ static std::vector<UserData> NativeGetAllUsers() {
     user.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
     user.saldo = sqlite3_column_int(stmt, 4);
     user.isActive = sqlite3_column_int(stmt, 5);
-    const char *addr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    const char *addr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     user.alamat = addr ? addr : "";
     users.push_back(user);
   }
@@ -464,10 +472,12 @@ static IncomeBreakdown NativeGetIncomeBreakdown() {
   sqlite3_stmt *stmt;
 
   // Get income by type
-  const char *sql = "SELECT type, COALESCE(SUM(amount), 0) FROM income GROUP BY type;";
+  const char *sql =
+      "SELECT type, COALESCE(SUM(amount), 0) FROM income GROUP BY type;";
   if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-      const char *type = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      const char *type =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
       int amount = sqlite3_column_int(stmt, 1);
       if (type) {
         if (strcmp(type, "commission") == 0)
@@ -481,7 +491,8 @@ static IncomeBreakdown NativeGetIncomeBreakdown() {
     sqlite3_finalize(stmt);
   }
 
-  breakdown.totalIncome = breakdown.appIncome + breakdown.merchantIncome + breakdown.courierIncome;
+  breakdown.totalIncome =
+      breakdown.appIncome + breakdown.merchantIncome + breakdown.courierIncome;
   return breakdown;
 }
 
@@ -493,8 +504,9 @@ static std::vector<ProductData> NativeGetProductsByMerchant(int merchantID) {
   if (g_db == nullptr)
     return products;
 
-  const char *sql = "SELECT id, nama, harga, komisi, merchant_id FROM products "
-                    "WHERE merchant_id = ? ORDER BY id DESC;";
+  const char *sql =
+      "SELECT id, nama, harga, komisi, stok, merchant_id FROM products "
+      "WHERE merchant_id = ? ORDER BY id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -511,7 +523,8 @@ static std::vector<ProductData> NativeGetProductsByMerchant(int merchantID) {
     product.nama = nama ? nama : "";
     product.harga = sqlite3_column_int(stmt, 2);
     product.komisi = sqlite3_column_int(stmt, 3);
-    product.merchantID = sqlite3_column_int(stmt, 4);
+    product.stok = sqlite3_column_int(stmt, 4);
+    product.merchantID = sqlite3_column_int(stmt, 5);
     products.push_back(product);
   }
 
@@ -521,12 +534,13 @@ static std::vector<ProductData> NativeGetProductsByMerchant(int merchantID) {
 
 // Add new product
 static bool NativeAddProduct(const std::string &nama, int harga, int komisi,
-                             int merchantID) {
+                             int stok, int merchantID) {
   if (g_db == nullptr)
     return false;
 
-  const char *sql = "INSERT INTO products (nama, harga, komisi, merchant_id) "
-                    "VALUES (?, ?, ?, ?);";
+  const char *sql =
+      "INSERT INTO products (nama, harga, komisi, stok, merchant_id) "
+      "VALUES (?, ?, ?, ?, ?);";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -536,7 +550,8 @@ static bool NativeAddProduct(const std::string &nama, int harga, int komisi,
   sqlite3_bind_text(stmt, 1, nama.c_str(), -1, SQLITE_STATIC);
   sqlite3_bind_int(stmt, 2, harga);
   sqlite3_bind_int(stmt, 3, komisi);
-  sqlite3_bind_int(stmt, 4, merchantID);
+  sqlite3_bind_int(stmt, 4, stok);
+  sqlite3_bind_int(stmt, 5, merchantID);
 
   rc = sqlite3_step(stmt);
   sqlite3_finalize(stmt);
@@ -546,12 +561,12 @@ static bool NativeAddProduct(const std::string &nama, int harga, int komisi,
 
 // Update product
 static bool NativeUpdateProduct(int productID, const std::string &nama,
-                                int harga, int komisi) {
+                                int harga, int komisi, int stok) {
   if (g_db == nullptr)
     return false;
 
-  const char *sql =
-      "UPDATE products SET nama = ?, harga = ?, komisi = ? WHERE id = ?;";
+  const char *sql = "UPDATE products SET nama = ?, harga = ?, komisi = ?, stok "
+                    "= ? WHERE id = ?;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -561,7 +576,8 @@ static bool NativeUpdateProduct(int productID, const std::string &nama,
   sqlite3_bind_text(stmt, 1, nama.c_str(), -1, SQLITE_STATIC);
   sqlite3_bind_int(stmt, 2, harga);
   sqlite3_bind_int(stmt, 3, komisi);
-  sqlite3_bind_int(stmt, 4, productID);
+  sqlite3_bind_int(stmt, 4, stok);
+  sqlite3_bind_int(stmt, 5, productID);
 
   rc = sqlite3_step(stmt);
   sqlite3_finalize(stmt);
@@ -684,8 +700,9 @@ static std::vector<ProductData> NativeGetAllProducts() {
   if (g_db == nullptr)
     return products;
 
-  const char *sql = "SELECT id, nama, harga, komisi, merchant_id FROM products "
-                    "ORDER BY id DESC;";
+  const char *sql =
+      "SELECT id, nama, harga, komisi, stok, merchant_id FROM products "
+      "ORDER BY id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -700,7 +717,45 @@ static std::vector<ProductData> NativeGetAllProducts() {
     product.nama = nama ? nama : "";
     product.harga = sqlite3_column_int(stmt, 2);
     product.komisi = sqlite3_column_int(stmt, 3);
-    product.merchantID = sqlite3_column_int(stmt, 4);
+    product.stok = sqlite3_column_int(stmt, 4);
+    product.merchantID = sqlite3_column_int(stmt, 5);
+    products.push_back(product);
+  }
+
+  sqlite3_finalize(stmt);
+  return products;
+}
+
+// Get all products with merchant name (for customer catalog)
+static std::vector<ProductData> NativeGetAllProductsWithMerchantName() {
+  std::vector<ProductData> products;
+  if (g_db == nullptr)
+    return products;
+
+  const char *sql = "SELECT p.id, p.nama, p.harga, p.komisi, p.stok, "
+                    "p.merchant_id, u.username "
+                    "FROM products p "
+                    "LEFT JOIN users u ON p.merchant_id = u.id "
+                    "ORDER BY p.id DESC;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return products;
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    ProductData product;
+    product.id = sqlite3_column_int(stmt, 0);
+    const char *nama =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    product.nama = nama ? nama : "";
+    product.harga = sqlite3_column_int(stmt, 2);
+    product.komisi = sqlite3_column_int(stmt, 3);
+    product.stok = sqlite3_column_int(stmt, 4);
+    product.merchantID = sqlite3_column_int(stmt, 5);
+    const char *merchName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    product.merchantName = merchName ? merchName : "";
     products.push_back(product);
   }
 
@@ -763,7 +818,8 @@ static std::string NativeGetUserAddress(int userID) {
   if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
     sqlite3_bind_int(stmt, 1, userID);
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-      const char *addr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      const char *addr =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
       alamat = addr ? addr : "";
     }
     sqlite3_finalize(stmt);
@@ -921,17 +977,16 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
 
   EnsureCourierColumn();
 
-  const char *sql =
-      "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
-      "COALESCE(t.created_at, ''), "
-      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
-      "FROM transactions t "
-      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
-      "LEFT JOIN products p ON t.product_id = p.id "
-      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
-      "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
-      "t.courier_id = 0) "
-      "ORDER BY t.id DESC;";
+  const char *sql = "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
+                    "COALESCE(t.created_at, ''), "
+                    "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+                    "FROM transactions t "
+                    "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+                    "LEFT JOIN products p ON t.product_id = p.id "
+                    "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+                    "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
+                    "t.courier_id = 0) "
+                    "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -948,13 +1003,15 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-    
-    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+
+    const char *custAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-    
-    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-    
+
     transactions.push_back(trans);
   }
 
@@ -996,13 +1053,15 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-    
-    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+
+    const char *custAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-    
-    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-    
+
     transactions.push_back(trans);
   }
 
@@ -1044,13 +1103,15 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-    
-    const char *custAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+
+    const char *custAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-    
-    const char *merchAddr = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-    
+
     transactions.push_back(trans);
   }
 
@@ -1343,15 +1404,15 @@ public:
 
       // Get income breakdown: [0]=total, [1]=app, [2]=merchant, [3]=courier
       static array<int> ^
-          GetIncomeBreakdown() {
-            IncomeBreakdown breakdown = NativeGetIncomeBreakdown();
-            array<int> ^ result = gcnew array<int>(4);
-            result[0] = breakdown.totalIncome;
-            result[1] = breakdown.appIncome;
-            result[2] = breakdown.merchantIncome;
-            result[3] = breakdown.courierIncome;
-            return result;
-          }
+      GetIncomeBreakdown() {
+        IncomeBreakdown breakdown = NativeGetIncomeBreakdown();
+        array<int> ^ result = gcnew array<int>(4);
+        result[0] = breakdown.totalIncome;
+        result[1] = breakdown.appIncome;
+        result[2] = breakdown.merchantIncome;
+        result[3] = breakdown.courierIncome;
+        return result;
+      }
 
       // ============ Merchant Functions ============
 
@@ -1363,6 +1424,7 @@ public:
     dt->Columns->Add("Nama", String::typeid);
     dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Komisi", Int32::typeid);
+    dt->Columns->Add("Stok", Int32::typeid);
 
     std::vector<ProductData> products = NativeGetProductsByMerchant(merchantID);
     for (const auto &product : products) {
@@ -1371,6 +1433,7 @@ public:
       row["Nama"] = gcnew String(product.nama.c_str());
       row["Harga"] = product.harga;
       row["Komisi"] = product.komisi;
+      row["Stok"] = product.stok;
       dt->Rows->Add(row);
     }
 
@@ -1378,16 +1441,17 @@ public:
   }
 
   // Add new product
-  static bool AddProduct(String ^ nama, int harga, int komisi, int merchantID) {
+  static bool AddProduct(String ^ nama, int harga, int komisi, int stok,
+                         int merchantID) {
     std::string namaNative = msclr::interop::marshal_as<std::string>(nama);
-    return NativeAddProduct(namaNative, harga, komisi, merchantID);
+    return NativeAddProduct(namaNative, harga, komisi, stok, merchantID);
   }
 
   // Update product
-  static bool UpdateProduct(int productID, String ^ nama, int harga,
-                            int komisi) {
+  static bool UpdateProduct(int productID, String ^ nama, int harga, int komisi,
+                            int stok) {
     std::string namaNative = msclr::interop::marshal_as<std::string>(nama);
-    return NativeUpdateProduct(productID, namaNative, harga, komisi);
+    return NativeUpdateProduct(productID, namaNative, harga, komisi, stok);
   }
 
   // Delete product
@@ -1440,6 +1504,7 @@ public:
     dt->Columns->Add("Nama", String::typeid);
     dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Komisi", Int32::typeid);
+    dt->Columns->Add("Stok", Int32::typeid);
     dt->Columns->Add("MerchantID", Int32::typeid);
 
     std::vector<ProductData> products = NativeGetAllProducts();
@@ -1449,7 +1514,35 @@ public:
       row["Nama"] = gcnew String(product.nama.c_str());
       row["Harga"] = product.harga;
       row["Komisi"] = product.komisi;
+      row["Stok"] = product.stok;
       row["MerchantID"] = product.merchantID;
+      dt->Rows->Add(row);
+    }
+
+    return dt;
+  }
+
+  // Get all products with merchant name as DataTable (for customer catalog)
+  static DataTable ^ GetAllProductsWithMerchantName() {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("Nama", String::typeid);
+    dt->Columns->Add("Harga", Int32::typeid);
+    dt->Columns->Add("Stok", Int32::typeid);
+    dt->Columns->Add("Toko", String::typeid);
+    dt->Columns->Add("MerchantID", Int32::typeid);
+    dt->Columns->Add("Komisi", Int32::typeid);
+
+    std::vector<ProductData> products = NativeGetAllProductsWithMerchantName();
+    for (const auto &product : products) {
+      DataRow ^ row = dt->NewRow();
+      row["ID"] = product.id;
+      row["Nama"] = gcnew String(product.nama.c_str());
+      row["Harga"] = product.harga;
+      row["Stok"] = product.stok;
+      row["Toko"] = gcnew String(product.merchantName.c_str());
+      row["MerchantID"] = product.merchantID;
+      row["Komisi"] = product.komisi;
       dt->Rows->Add(row);
     }
 

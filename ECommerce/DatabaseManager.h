@@ -40,13 +40,15 @@ public:
 
   // ============ Merchant Functions ============
   static DataTable ^ GetProductsByMerchant(int merchantID);
-  static bool AddProduct(String ^ nama, int harga, int komisi, int merchantID);
-  static bool UpdateProduct(int productID, String ^ nama, int harga,
-                            int komisi);
+  static bool AddProduct(String ^ nama, int harga, int komisi, int stok,
+                         int merchantID);
+  static bool UpdateProduct(int productID, String ^ nama, int harga, int komisi,
+                            int stok);
   static bool DeleteProduct(int productID);
   static DataTable ^ GetTransactionsByMerchant(int merchantID);
   static array<int> ^ GetMerchantStats(int merchantID);
   static DataTable ^ GetAllProductsTable();
+  static DataTable ^ GetAllProductsWithMerchantName();
 
   // ============ Customer Functions ============
   static int GetUserSaldo(int userID);
