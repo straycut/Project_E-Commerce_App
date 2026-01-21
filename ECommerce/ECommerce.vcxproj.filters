@@ -76,7 +76,7 @@
     <EmbeddedResource Include="customerForm.resx">
       <Filter>Resource Files</Filter>
     </EmbeddedResource>
-    <EmbeddedResource Include="loginForm.resx">
+    <EmbeddedResource Include="loginF.resx">
       <Filter>Resource Files</Filter>
     </EmbeddedResource>
     <EmbeddedResource Include="merchantForm.resx">

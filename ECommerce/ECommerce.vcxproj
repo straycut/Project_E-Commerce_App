@@ -193,6 +193,9 @@
     <EmbeddedResource Include="customerForm.resx">
       <DependentUpon>customerForm.h</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="loginF.resx">
+      <DependentUpon>loginForm.h</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="loginForm.resx">
       <DependentUpon>loginForm.h</DependentUpon>
     </EmbeddedResource>

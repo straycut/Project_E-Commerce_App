@@ -76,7 +76,12 @@ System::Void loginF::btnMasuk_Click(System::Object ^ sender,
 
 System::Void loginF::loginF_Load(System::Object ^ sender,
                                  System::EventArgs ^ e) {
-  // Empty handler
+  // Load logo image from file
+  System::String ^ imagePath =
+      "d:\\project\\ecom2\\ECommerce\\asset\\logoipsum-387 (Custom).png";
+  if (System::IO::File::Exists(imagePath)) {
+    this->pictureBox1->Image = System::Drawing::Image::FromFile(imagePath);
+  }
 }
 
 } // namespace ECommerce
