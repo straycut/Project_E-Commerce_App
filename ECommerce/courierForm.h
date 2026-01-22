@@ -17,7 +17,9 @@ public
 ref class courierForm : public System::Windows::Forms::Form {
 public:
   int currentUserID;
-  String ^ currentUsername;
+
+public:
+    String^ currentUsername;
 
   courierForm(void) {
     InitializeComponent();
@@ -177,7 +179,7 @@ private:
       this->lblTitle->AutoSize = true;
       this->lblTitle->Font = (gcnew System::Drawing::Font(L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
       this->lblTitle->ForeColor = System::Drawing::Color::MediumSeaGreen;
-      this->lblTitle->Location = System::Drawing::Point(20, 74);
+      this->lblTitle->Location = System::Drawing::Point(20, 21);
       this->lblTitle->Name = L"lblTitle";
       this->lblTitle->Size = System::Drawing::Size(230, 32);
       this->lblTitle->TabIndex = 0;
@@ -187,7 +189,7 @@ private:
       // 
       this->lblTodayDeliveries->AutoSize = true;
       this->lblTodayDeliveries->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14));
-      this->lblTodayDeliveries->Location = System::Drawing::Point(21, 118);
+      this->lblTodayDeliveries->Location = System::Drawing::Point(21, 99);
       this->lblTodayDeliveries->Name = L"lblTodayDeliveries";
       this->lblTodayDeliveries->Size = System::Drawing::Size(193, 25);
       this->lblTodayDeliveries->TabIndex = 1;
@@ -197,7 +199,7 @@ private:
       // 
       this->lblTotalDeliveries->AutoSize = true;
       this->lblTotalDeliveries->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14));
-      this->lblTotalDeliveries->Location = System::Drawing::Point(21, 143);
+      this->lblTotalDeliveries->Location = System::Drawing::Point(21, 124);
       this->lblTotalDeliveries->Name = L"lblTotalDeliveries";
       this->lblTotalDeliveries->Size = System::Drawing::Size(172, 25);
       this->lblTotalDeliveries->TabIndex = 2;
@@ -208,7 +210,7 @@ private:
       this->lblTotalIncome->AutoSize = true;
       this->lblTotalIncome->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
       this->lblTotalIncome->ForeColor = System::Drawing::Color::DarkGreen;
-      this->lblTotalIncome->Location = System::Drawing::Point(21, 168);
+      this->lblTotalIncome->Location = System::Drawing::Point(21, 149);
       this->lblTotalIncome->Name = L"lblTotalIncome";
       this->lblTotalIncome->Size = System::Drawing::Size(168, 25);
       this->lblTotalIncome->TabIndex = 3;

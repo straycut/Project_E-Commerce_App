@@ -236,7 +236,7 @@ private:
       this->tabDashboard->Location = System::Drawing::Point(4, 22);
       this->tabDashboard->Name = L"tabDashboard";
       this->tabDashboard->Padding = System::Windows::Forms::Padding(3);
-      this->tabDashboard->Size = System::Drawing::Size(752, 454);
+      this->tabDashboard->Size = System::Drawing::Size(852, 454);
       this->tabDashboard->TabIndex = 0;
       this->tabDashboard->Text = L"Dashboard";
       this->tabDashboard->UseVisualStyleBackColor = true;
@@ -285,7 +285,7 @@ private:
       // 
       // btnRefreshDashboard
       // 
-      this->btnRefreshDashboard->Location = System::Drawing::Point(26, 191);
+      this->btnRefreshDashboard->Location = System::Drawing::Point(26, 392);
       this->btnRefreshDashboard->Name = L"btnRefreshDashboard";
       this->btnRefreshDashboard->Size = System::Drawing::Size(120, 30);
       this->btnRefreshDashboard->TabIndex = 4;
@@ -332,12 +332,12 @@ private:
       this->dgvProducts->Name = L"dgvProducts";
       this->dgvProducts->ReadOnly = true;
       this->dgvProducts->SelectionMode = System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
-      this->dgvProducts->Size = System::Drawing::Size(450, 280);
+      this->dgvProducts->Size = System::Drawing::Size(533, 320);
       this->dgvProducts->TabIndex = 1;
       // 
       // btnRefreshProducts
       // 
-      this->btnRefreshProducts->Location = System::Drawing::Point(15, 340);
+      this->btnRefreshProducts->Location = System::Drawing::Point(15, 376);
       this->btnRefreshProducts->Name = L"btnRefreshProducts";
       this->btnRefreshProducts->Size = System::Drawing::Size(100, 30);
       this->btnRefreshProducts->TabIndex = 2;
@@ -347,8 +347,8 @@ private:
       // 
       // btnAddProduct
       // 
-      this->btnAddProduct->BackColor = System::Drawing::Color::LightGreen;
-      this->btnAddProduct->Location = System::Drawing::Point(125, 340);
+      this->btnAddProduct->BackColor = System::Drawing::Color::Ivory;
+      this->btnAddProduct->Location = System::Drawing::Point(125, 376);
       this->btnAddProduct->Name = L"btnAddProduct";
       this->btnAddProduct->Size = System::Drawing::Size(100, 30);
       this->btnAddProduct->TabIndex = 3;
@@ -358,8 +358,8 @@ private:
       // 
       // btnEditProduct
       // 
-      this->btnEditProduct->BackColor = System::Drawing::Color::LightBlue;
-      this->btnEditProduct->Location = System::Drawing::Point(235, 340);
+      this->btnEditProduct->BackColor = System::Drawing::Color::Azure;
+      this->btnEditProduct->Location = System::Drawing::Point(235, 376);
       this->btnEditProduct->Name = L"btnEditProduct";
       this->btnEditProduct->Size = System::Drawing::Size(100, 30);
       this->btnEditProduct->TabIndex = 4;
@@ -369,8 +369,8 @@ private:
       // 
       // btnDeleteProduct
       // 
-      this->btnDeleteProduct->BackColor = System::Drawing::Color::LightCoral;
-      this->btnDeleteProduct->Location = System::Drawing::Point(345, 340);
+      this->btnDeleteProduct->BackColor = System::Drawing::Color::MistyRose;
+      this->btnDeleteProduct->Location = System::Drawing::Point(345, 376);
       this->btnDeleteProduct->Name = L"btnDeleteProduct";
       this->btnDeleteProduct->Size = System::Drawing::Size(100, 30);
       this->btnDeleteProduct->TabIndex = 5;
@@ -380,11 +380,10 @@ private:
       // 
       // btnAddStock
       // 
-      this->btnAddStock->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(0)), static_cast<System::Int32>(static_cast<System::Byte>(122)),
-          static_cast<System::Int32>(static_cast<System::Byte>(204)));
+      this->btnAddStock->BackColor = System::Drawing::Color::MediumSeaGreen;
       this->btnAddStock->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnAddStock->ForeColor = System::Drawing::Color::White;
-      this->btnAddStock->Location = System::Drawing::Point(15, 380);
+      this->btnAddStock->Location = System::Drawing::Point(15, 412);
       this->btnAddStock->Name = L"btnAddStock";
       this->btnAddStock->Size = System::Drawing::Size(100, 30);
       this->btnAddStock->TabIndex = 8;
@@ -405,7 +404,7 @@ private:
       this->panelProduct->Controls->Add(this->txtStok);
       this->panelProduct->Controls->Add(this->btnSaveProduct);
       this->panelProduct->Controls->Add(this->btnCancelProduct);
-      this->panelProduct->Location = System::Drawing::Point(480, 50);
+      this->panelProduct->Location = System::Drawing::Point(565, 50);
       this->panelProduct->Name = L"panelProduct";
       this->panelProduct->Size = System::Drawing::Size(260, 320);
       this->panelProduct->TabIndex = 6;
@@ -508,7 +507,7 @@ private:
       this->tabSales->Controls->Add(this->btnRefreshSales);
       this->tabSales->Location = System::Drawing::Point(4, 22);
       this->tabSales->Name = L"tabSales";
-      this->tabSales->Size = System::Drawing::Size(752, 454);
+      this->tabSales->Size = System::Drawing::Size(852, 454);
       this->tabSales->TabIndex = 2;
       this->tabSales->Text = L"Penjualan";
       this->tabSales->UseVisualStyleBackColor = true;
@@ -533,12 +532,12 @@ private:
       this->dgvSales->MultiSelect = false;
       this->dgvSales->Name = L"dgvSales";
       this->dgvSales->ReadOnly = true;
-      this->dgvSales->Size = System::Drawing::Size(720, 340);
+      this->dgvSales->Size = System::Drawing::Size(820, 340);
       this->dgvSales->TabIndex = 1;
       // 
       // btnRefreshSales
       // 
-      this->btnRefreshSales->Location = System::Drawing::Point(15, 400);
+      this->btnRefreshSales->Location = System::Drawing::Point(15, 406);
       this->btnRefreshSales->Name = L"btnRefreshSales";
       this->btnRefreshSales->Size = System::Drawing::Size(100, 30);
       this->btnRefreshSales->TabIndex = 2;
@@ -555,7 +554,7 @@ private:
       this->tabProfile->Controls->Add(this->lblAlamatInfo);
       this->tabProfile->Location = System::Drawing::Point(4, 22);
       this->tabProfile->Name = L"tabProfile";
-      this->tabProfile->Size = System::Drawing::Size(752, 454);
+      this->tabProfile->Size = System::Drawing::Size(852, 454);
       this->tabProfile->TabIndex = 3;
       this->tabProfile->Text = L"Profil Toko";
       this->tabProfile->UseVisualStyleBackColor = true;
@@ -591,12 +590,11 @@ private:
       // 
       // btnSaveAlamat
       // 
-      this->btnSaveAlamat->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(0)), static_cast<System::Int32>(static_cast<System::Byte>(122)),
-          static_cast<System::Int32>(static_cast<System::Byte>(204)));
+      this->btnSaveAlamat->BackColor = System::Drawing::Color::MediumSeaGreen;
       this->btnSaveAlamat->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
       this->btnSaveAlamat->ForeColor = System::Drawing::Color::White;
-      this->btnSaveAlamat->Location = System::Drawing::Point(15, 180);
+      this->btnSaveAlamat->Location = System::Drawing::Point(15, 198);
       this->btnSaveAlamat->Name = L"btnSaveAlamat";
       this->btnSaveAlamat->Size = System::Drawing::Size(150, 35);
       this->btnSaveAlamat->TabIndex = 3;
@@ -609,7 +607,7 @@ private:
       this->lblAlamatInfo->AutoSize = true;
       this->lblAlamatInfo->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9));
       this->lblAlamatInfo->ForeColor = System::Drawing::Color::Gray;
-      this->lblAlamatInfo->Location = System::Drawing::Point(15, 225);
+      this->lblAlamatInfo->Location = System::Drawing::Point(15, 180);
       this->lblAlamatInfo->Name = L"lblAlamatInfo";
       this->lblAlamatInfo->Size = System::Drawing::Size(369, 15);
       this->lblAlamatInfo->TabIndex = 4;

@@ -22,18 +22,10 @@ protected:
   }
 
 private:
-
-
 protected:
 private:
-
-
 private:
-
-
 private:
-
-
 private:
   System::Windows::Forms::Label ^ labelPassword;
 
@@ -41,25 +33,32 @@ private:
   System::Windows::Forms::Label ^ labelUsername;
 
 private:
-
-
 private:
   System::Windows::Forms::Label ^ labelRole;
 
 private:
   System::Windows::Forms::ComboBox ^ comboBoxRole;
-private: System::Windows::Forms::TextBox^ textBoxPassword;
 
-private: System::Windows::Forms::TextBox^ textBoxUsername;
+private:
+  System::Windows::Forms::TextBox ^ textBoxPassword;
 
-private: System::Windows::Forms::Label^ label2;
-private: System::Windows::Forms::Button^ btnDaftar;
+private:
+  System::Windows::Forms::TextBox ^ textBoxUsername;
 
+private:
+  System::Windows::Forms::Label ^ label2;
 
-private: System::Windows::Forms::Label^ label1;
-private: System::Windows::Forms::Button^ btnKembali;
-private: System::Windows::Forms::Label^ labelTitle;
+private:
+  System::Windows::Forms::Button ^ btnDaftar;
 
+private:
+  System::Windows::Forms::Label ^ label1;
+
+private:
+  System::Windows::Forms::Button ^ btnKembali;
+
+private:
+  System::Windows::Forms::Label ^ labelTitle;
 
 private:
   /// <summary>
@@ -149,7 +148,7 @@ private:
       this->label2->BackColor = System::Drawing::Color::Transparent;
       this->label2->Font = (gcnew System::Drawing::Font(L"Segoe UI", 20, System::Drawing::FontStyle::Bold));
       this->label2->ForeColor = System::Drawing::Color::MediumSeaGreen;
-      this->label2->Location = System::Drawing::Point(80, 219);
+      this->label2->Location = System::Drawing::Point(122, 219);
       this->label2->Name = L"label2";
       this->label2->Size = System::Drawing::Size(149, 37);
       this->label2->TabIndex = 25;
@@ -175,12 +174,11 @@ private:
       this->label1->BackColor = System::Drawing::Color::Transparent;
       this->label1->Font = (gcnew System::Drawing::Font(L"Segoe UI", 20, System::Drawing::FontStyle::Bold));
       this->label1->ForeColor = System::Drawing::Color::MediumSeaGreen;
-      this->label1->Location = System::Drawing::Point(80, 182);
+      this->label1->Location = System::Drawing::Point(122, 182);
       this->label1->Name = L"label1";
       this->label1->Size = System::Drawing::Size(143, 37);
       this->label1->TabIndex = 18;
       this->label1->Text = L"Registrasi";
-      this->label1->Click += gcnew System::EventHandler(this, &registerF::label1_Click);
       // 
       // btnKembali
       // 
@@ -196,18 +194,18 @@ private:
       this->btnKembali->TabIndex = 26;
       this->btnKembali->Text = L"Kembali";
       this->btnKembali->UseVisualStyleBackColor = false;
+      this->btnKembali->Click += gcnew System::EventHandler(this, &registerF::btnKembali_Click);
       // 
       // labelTitle
       // 
       this->labelTitle->AutoSize = true;
       this->labelTitle->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14.25F, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
           static_cast<System::Byte>(0)));
-      this->labelTitle->Location = System::Drawing::Point(82, 157);
+      this->labelTitle->Location = System::Drawing::Point(124, 157);
       this->labelTitle->Name = L"labelTitle";
       this->labelTitle->Size = System::Drawing::Size(152, 25);
       this->labelTitle->TabIndex = 7;
       this->labelTitle->Text = L"Masukan untuk";
-      this->labelTitle->Click += gcnew System::EventHandler(this, &registerF::labelTitle_Click);
       // 
       // registerF
       // 
@@ -245,6 +243,5 @@ private:
   System::Void btnDaftar_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void comboBoxRole_SelectedIndexChanged(System::Object ^ sender,
                                                  System::EventArgs ^ e);
-
 };
 } // namespace ECommerce
