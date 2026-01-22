@@ -552,6 +552,8 @@ private:
     this->btnTopUp->TabIndex = 9;
     this->btnTopUp->Text = L"Top Up Saldo";
     this->btnTopUp->UseVisualStyleBackColor = false;
+    this->btnTopUp->Click +=
+        gcnew System::EventHandler(this, &customerForm::btnTopUp_Click);
     //
     // lblProfileTitle
     //

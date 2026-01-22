@@ -449,7 +449,7 @@ private:
       // 
       // btnActivateUser
       // 
-      this->btnActivateUser->BackColor = System::Drawing::Color::LightGreen;
+      this->btnActivateUser->BackColor = System::Drawing::Color::Honeydew;
       this->btnActivateUser->Location = System::Drawing::Point(130, 408);
       this->btnActivateUser->Name = L"btnActivateUser";
       this->btnActivateUser->Size = System::Drawing::Size(120, 30);
@@ -460,7 +460,7 @@ private:
       // 
       // btnDeactivateUser
       // 
-      this->btnDeactivateUser->BackColor = System::Drawing::Color::LightCoral;
+      this->btnDeactivateUser->BackColor = System::Drawing::Color::MistyRose;
       this->btnDeactivateUser->Location = System::Drawing::Point(260, 408);
       this->btnDeactivateUser->Name = L"btnDeactivateUser";
       this->btnDeactivateUser->Size = System::Drawing::Size(120, 30);
@@ -471,7 +471,7 @@ private:
       // 
       // btnDeleteUser
       // 
-      this->btnDeleteUser->BackColor = System::Drawing::Color::IndianRed;
+      this->btnDeleteUser->BackColor = System::Drawing::Color::Salmon;
       this->btnDeleteUser->ForeColor = System::Drawing::Color::White;
       this->btnDeleteUser->Location = System::Drawing::Point(390, 408);
       this->btnDeleteUser->Name = L"btnDeleteUser";

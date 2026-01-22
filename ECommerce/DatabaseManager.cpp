@@ -41,6 +41,8 @@ struct TransactionData {
   std::string createdAt;
   std::string customerAddress;
   std::string merchantAddress;
+  std::string customerName;
+  std::string courierName;
 };
 
 struct IncomeData {
@@ -373,9 +375,15 @@ static std::vector<TransactionData> NativeGetAllTransactions() {
   if (g_db == nullptr)
     return transactions;
 
-  const char *sql = "SELECT id, product_id, customer_id, affiliate_id, status, "
-                    "COALESCE(created_at, '') "
-                    "FROM transactions ORDER BY id DESC;";
+  const char *sql =
+      "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, 0), "
+      "t.status, "
+      "COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.username, ''), COALESCE(u_courier.username, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
+      "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -392,6 +400,12 @@ static std::vector<TransactionData> NativeGetAllTransactions() {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    const char *custName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.customerName = custName ? custName : "";
+    const char *courierName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    trans.courierName = courierName ? courierName : "";
     transactions.push_back(trans);
   }
 
@@ -614,9 +628,12 @@ NativeGetTransactionsByMerchant(int merchantID) {
 
   const char *sql =
       "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, 0), "
-      "t.status, COALESCE(t.created_at, '') "
+      "t.status, COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.username, ''), COALESCE(u_courier.username, '') "
       "FROM transactions t "
       "INNER JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
       "WHERE p.merchant_id = ? "
       "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
@@ -637,6 +654,12 @@ NativeGetTransactionsByMerchant(int merchantID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    const char *custName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.customerName = custName ? custName : "";
+    const char *courierName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
+    trans.courierName = courierName ? courierName : "";
     transactions.push_back(trans);
   }
 
@@ -934,9 +957,13 @@ NativeGetTransactionsByCustomer(int customerID) {
   if (g_db == nullptr)
     return transactions;
 
-  const char *sql = "SELECT id, product_id, customer_id, COALESCE(courier_id, "
-                    "0), status, COALESCE(created_at, '') "
-                    "FROM transactions WHERE customer_id = ? ORDER BY id DESC;";
+  const char *sql =
+      "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, "
+      "0), t.status, COALESCE(t.created_at, ''), "
+      "COALESCE(u_courier.username, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
+      "WHERE t.customer_id = ? ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -955,6 +982,9 @@ NativeGetTransactionsByCustomer(int customerID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
+    const char *courierName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
+    trans.courierName = courierName ? courierName : "";
     transactions.push_back(trans);
   }
 
@@ -977,16 +1007,18 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
 
   EnsureCourierColumn();
 
-  const char *sql = "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
-                    "COALESCE(t.created_at, ''), "
-                    "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
-                    "FROM transactions t "
-                    "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
-                    "LEFT JOIN products p ON t.product_id = p.id "
-                    "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
-                    "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
-                    "t.courier_id = 0) "
-                    "ORDER BY t.id DESC;";
+  const char *sql =
+      "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
+      "COALESCE(t.created_at, ''), "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
+      "COALESCE(u_cust.username, '') "
+      "FROM transactions t "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+      "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
+      "t.courier_id = 0) "
+      "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -1012,6 +1044,10 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
 
+    const char *custName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    trans.customerName = custName ? custName : "";
+
     transactions.push_back(trans);
   }
 
@@ -1028,7 +1064,8 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
   const char *sql =
       "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
       "COALESCE(t.created_at, ''), "
-      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
+      "COALESCE(u_cust.username, '') "
       "FROM transactions t "
       "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "LEFT JOIN products p ON t.product_id = p.id "
@@ -1062,6 +1099,10 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
 
+    const char *custName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    trans.customerName = custName ? custName : "";
+
     transactions.push_back(trans);
   }
 
@@ -1078,7 +1119,8 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
   const char *sql =
       "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
       "COALESCE(t.created_at, ''), "
-      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, '') "
+      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
+      "COALESCE(u_cust.username, '') "
       "FROM transactions t "
       "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "LEFT JOIN products p ON t.product_id = p.id "
@@ -1111,6 +1153,10 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
     const char *merchAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
+
+    const char *custName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    trans.customerName = custName ? custName : "";
 
     transactions.push_back(trans);
   }
@@ -1366,8 +1412,8 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
-    dt->Columns->Add("CourierID", Int32::typeid);
+    dt->Columns->Add("Pembeli", String::typeid);
+    dt->Columns->Add("Kurir", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
 
@@ -1376,8 +1422,8 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
-      row["CourierID"] = trans.affiliateID;
+      row["Pembeli"] = gcnew String(trans.customerName.c_str());
+      row["Kurir"] = gcnew String(trans.courierName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       dt->Rows->Add(row);
@@ -1464,8 +1510,8 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
-    dt->Columns->Add("CourierID", Int32::typeid);
+    dt->Columns->Add("Pembeli", String::typeid);
+    dt->Columns->Add("Kurir", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
 
@@ -1475,8 +1521,8 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
-      row["CourierID"] = trans.affiliateID; // reused as courierID
+      row["Pembeli"] = gcnew String(trans.customerName.c_str());
+      row["Kurir"] = gcnew String(trans.courierName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       dt->Rows->Add(row);
@@ -1575,8 +1621,7 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
-    dt->Columns->Add("CourierID", Int32::typeid);
+    dt->Columns->Add("Kurir", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
 
@@ -1586,8 +1631,7 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
-      row["CourierID"] = trans.affiliateID;
+      row["Kurir"] = gcnew String(trans.courierName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       dt->Rows->Add(row);
@@ -1603,7 +1647,7 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
+    dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
@@ -1614,7 +1658,7 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
+      row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
@@ -1630,7 +1674,7 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
+    dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
@@ -1642,7 +1686,7 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
+      row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
@@ -1658,7 +1702,7 @@ public:
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("CustomerID", Int32::typeid);
+    dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
@@ -1670,7 +1714,7 @@ public:
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
       row["ProductID"] = trans.productID;
-      row["CustomerID"] = trans.customerID;
+      row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
