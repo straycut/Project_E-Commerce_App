@@ -26,6 +26,27 @@ void customerForm::LoadHistory() {
       DatabaseManager::GetTransactionsByCustomer(currentUserID);
 }
 
+void customerForm::FilterProducts(String^ keyword) {
+  DataTable^ allProducts = DatabaseManager::GetAllProductsWithMerchantName();
+  if (String::IsNullOrWhiteSpace(keyword)) {
+    dgvProducts->DataSource = allProducts;
+  } else {
+    DataView^ dv = gcnew DataView(allProducts);
+    dv->RowFilter = "Nama LIKE '%" + keyword->Replace("'", "''") + "%'";
+    dgvProducts->DataSource = dv;
+  }
+  // Hide unnecessary columns
+  if (dgvProducts->Columns["MerchantID"])
+    dgvProducts->Columns["MerchantID"]->Visible = false;
+  if (dgvProducts->Columns["Komisi"])
+    dgvProducts->Columns["Komisi"]->Visible = false;
+}
+
+System::Void customerForm::txtSearch_TextChanged(System::Object ^ sender,
+                                                  System::EventArgs ^ e) {
+  FilterProducts(txtSearch->Text->Trim());
+}
+
 void customerForm::LoadSaldo() {
   currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
   lblSaldoInfo->Text = L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
@@ -187,6 +208,44 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
 System::Void customerForm::btnRefreshHistory_Click(System::Object ^ sender,
                                                    System::EventArgs ^ e) {
   LoadHistory();
+}
+
+System::Void customerForm::btnConfirmReceived_Click(System::Object ^ sender,
+                                                     System::EventArgs ^ e) {
+  if (dgvHistory->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih pesanan yang akan dikonfirmasi!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transactionID =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
+  String ^ status = dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (status != "delivered") {
+    MessageBox::Show(
+        "Pesanan hanya dapat dikonfirmasi jika sudah dikirim (status: delivered)!\n\n"
+        "Status saat ini: " + status,
+        "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (MessageBox::Show("Konfirmasi bahwa pesanan sudah Anda terima?",
+                       "Konfirmasi Penerimaan", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
+
+    if (DatabaseManager::ConfirmDelivery(transactionID, currentUserID)) {
+      MessageBox::Show("Pesanan berhasil dikonfirmasi diterima!\n\n"
+                       "Terima kasih telah berbelanja.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
+      LoadHistory();
+    } else {
+      MessageBox::Show("Gagal mengkonfirmasi pesanan!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
 }
 
 System::Void customerForm::btnTopUp_Click(System::Object ^ sender,

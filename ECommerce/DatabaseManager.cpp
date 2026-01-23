@@ -997,6 +997,28 @@ NativeGetTransactionsByCustomer(int customerID) {
   return transactions;
 }
 
+// Customer confirms delivery received - updates status to 'completed'
+static bool NativeConfirmDelivery(int transactionID, int customerID) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql = "UPDATE transactions SET status = 'completed' "
+                    "WHERE id = ? AND customer_id = ? AND status = 'delivered';";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_int(stmt, 1, transactionID);
+  sqlite3_bind_int(stmt, 2, customerID);
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE && sqlite3_changes(g_db) > 0;
+}
+
 // ============ Courier Functions ============
 
 // Add courier_id column if not exists
@@ -1667,6 +1689,11 @@ public:
     }
 
     return dt;
+  }
+
+  // Confirm delivery received by customer
+  static bool ConfirmDelivery(int transactionID, int customerID) {
+    return NativeConfirmDelivery(transactionID, customerID);
   }
 
   // ============ Courier Functions ============

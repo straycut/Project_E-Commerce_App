@@ -99,6 +99,12 @@ private:
   System::Windows::Forms::Button ^ btnRefreshCatalog;
 
 private:
+  System::Windows::Forms::TextBox ^ txtSearch;
+
+private:
+  System::Windows::Forms::Label ^ lblSearch;
+
+private:
   System::Windows::Forms::Button ^ btnBuy;
 
 private:
@@ -138,6 +144,9 @@ private:
 
 private:
   System::Windows::Forms::Button ^ btnRefreshHistory;
+
+private:
+  System::Windows::Forms::Button ^ btnConfirmReceived;
 
   // Saldo
 private:
@@ -235,7 +244,11 @@ private:
     //
     // tabCatalog
     //
+    this->txtSearch = (gcnew System::Windows::Forms::TextBox());
+    this->lblSearch = (gcnew System::Windows::Forms::Label());
     this->tabCatalog->Controls->Add(this->lblCatalogTitle);
+    this->tabCatalog->Controls->Add(this->lblSearch);
+    this->tabCatalog->Controls->Add(this->txtSearch);
     this->tabCatalog->Controls->Add(this->dgvProducts);
     this->tabCatalog->Controls->Add(this->btnRefreshCatalog);
     this->tabCatalog->Controls->Add(this->lblQuantity);
@@ -261,6 +274,26 @@ private:
     this->lblCatalogTitle->Size = System::Drawing::Size(152, 25);
     this->lblCatalogTitle->TabIndex = 0;
     this->lblCatalogTitle->Text = L"Katalog Produk";
+    //
+    // lblSearch
+    //
+    this->lblSearch->AutoSize = true;
+    this->lblSearch->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9));
+    this->lblSearch->Location = System::Drawing::Point(200, 18);
+    this->lblSearch->Name = L"lblSearch";
+    this->lblSearch->Size = System::Drawing::Size(75, 15);
+    this->lblSearch->TabIndex = 10;
+    this->lblSearch->Text = L"Cari Produk:";
+    //
+    // txtSearch
+    //
+    this->txtSearch->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10));
+    this->txtSearch->Location = System::Drawing::Point(285, 15);
+    this->txtSearch->Name = L"txtSearch";
+    this->txtSearch->Size = System::Drawing::Size(250, 25);
+    this->txtSearch->TabIndex = 11;
+    this->txtSearch->TextChanged += gcnew System::EventHandler(
+        this, &customerForm::txtSearch_TextChanged);
     //
     // dgvProducts
     //
@@ -433,9 +466,11 @@ private:
     //
     // tabHistory
     //
+    this->btnConfirmReceived = (gcnew System::Windows::Forms::Button());
     this->tabHistory->Controls->Add(this->lblHistoryTitle);
     this->tabHistory->Controls->Add(this->dgvHistory);
     this->tabHistory->Controls->Add(this->btnRefreshHistory);
+    this->tabHistory->Controls->Add(this->btnConfirmReceived);
     this->tabHistory->Location = System::Drawing::Point(4, 22);
     this->tabHistory->Name = L"tabHistory";
     this->tabHistory->Size = System::Drawing::Size(852, 454);
@@ -479,6 +514,25 @@ private:
     this->btnRefreshHistory->UseVisualStyleBackColor = true;
     this->btnRefreshHistory->Click += gcnew System::EventHandler(
         this, &customerForm::btnRefreshHistory_Click);
+    //
+    // btnConfirmReceived
+    //
+    this->btnConfirmReceived->BackColor = System::Drawing::Color::FromArgb(
+        static_cast<System::Int32>(static_cast<System::Byte>(0)),
+        static_cast<System::Int32>(static_cast<System::Byte>(122)),
+        static_cast<System::Int32>(static_cast<System::Byte>(204)));
+    this->btnConfirmReceived->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnConfirmReceived->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+    this->btnConfirmReceived->ForeColor = System::Drawing::Color::White;
+    this->btnConfirmReceived->Location = System::Drawing::Point(130, 407);
+    this->btnConfirmReceived->Name = L"btnConfirmReceived";
+    this->btnConfirmReceived->Size = System::Drawing::Size(150, 30);
+    this->btnConfirmReceived->TabIndex = 12;
+    this->btnConfirmReceived->Text = L"Konfirmasi Diterima";
+    this->btnConfirmReceived->UseVisualStyleBackColor = false;
+    this->btnConfirmReceived->Click += gcnew System::EventHandler(
+        this, &customerForm::btnConfirmReceived_Click);
     //
     // tabProfile
     //
@@ -683,6 +737,9 @@ private:
   void LoadHistory();
   void LoadSaldo();
   void LoadProfile();
+  void FilterProducts(String^ keyword);
+  System::Void txtSearch_TextChanged(System::Object ^ sender,
+                                     System::EventArgs ^ e);
   System::Void btnRefreshCatalog_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
   System::Void btnAddToCart_Click(System::Object ^ sender,
@@ -694,6 +751,8 @@ private:
   void UpdateCartTotal();
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
+  System::Void btnConfirmReceived_Click(System::Object ^ sender,
+                                        System::EventArgs ^ e);
   System::Void btnTopUp_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnSaveAlamat_Click(System::Object ^ sender,
                                    System::EventArgs ^ e);
