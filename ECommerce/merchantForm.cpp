@@ -98,8 +98,8 @@ System::Void merchantForm::btnEditProduct_Click(System::Object ^ sender,
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   txtHarga->Text =
       dgvProducts->SelectedRows[0]->Cells["Harga"]->Value->ToString();
-  txtKomisi->Text =
-      dgvProducts->SelectedRows[0]->Cells["Komisi"]->Value->ToString();
+  // Komisi is fixed at 5%, no need to read from grid
+  txtKomisi->Text = "5";
   txtStok->Text =
       dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
   panelProduct->Visible = true;
@@ -146,16 +146,10 @@ System::Void merchantForm::btnSaveProduct_Click(System::Object ^ sender,
   }
 
   int harga = 0;
-  int komisi = 0;
+  int komisi = 5; // Fixed 5% commission
 
   if (!Int32::TryParse(txtHarga->Text, harga) || harga <= 0) {
     MessageBox::Show("Harga harus berupa angka positif!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  if (!Int32::TryParse(txtKomisi->Text, komisi) || komisi < 0 || komisi > 100) {
-    MessageBox::Show("Komisi harus berupa angka antara 0-100!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
@@ -221,8 +215,8 @@ System::Void merchantForm::btnAddStock_Click(System::Object ^ sender,
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   txtHarga->Text =
       dgvProducts->SelectedRows[0]->Cells["Harga"]->Value->ToString();
-  txtKomisi->Text =
-      dgvProducts->SelectedRows[0]->Cells["Komisi"]->Value->ToString();
+  // Komisi is fixed at 5%, no need to read from grid
+  txtKomisi->Text = "5";
   txtStok->Text =
       dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
   panelProduct->Visible = true;

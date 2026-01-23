@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+
 // Forward declarations
 struct sqlite3;
 struct sqlite3_stmt;
@@ -139,6 +140,10 @@ static bool NativeInitialize() {
 
   // Add stok column if not exists (for existing databases)
   ExecuteSQL("ALTER TABLE products ADD COLUMN stok INTEGER DEFAULT 0;");
+
+  // Update existing products with 0 commission to fixed 5% commission
+  ExecuteSQL(
+      "UPDATE products SET komisi = 5 WHERE komisi = 0 OR komisi IS NULL;");
 
   // Create Transactions table
   const char *createTransactionsSQL =
@@ -1432,6 +1437,30 @@ public:
     return dt;
   }
 
+  // Update transaction status
+  static bool UpdateTransactionStatus(int transactionID, String ^ newStatus) {
+    if (g_db == nullptr)
+      return false;
+
+    std::string statusNative =
+        msclr::interop::marshal_as<std::string>(newStatus);
+
+    const char *sql = "UPDATE transactions SET status = ? WHERE id = ?;";
+    sqlite3_stmt *stmt;
+
+    int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+      return false;
+
+    sqlite3_bind_text(stmt, 1, statusNative.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, transactionID);
+
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    return rc == SQLITE_DONE;
+  }
+
   // Get dashboard statistics
   static array<int> ^
       GetDashboardStats() {
@@ -1737,12 +1766,45 @@ public:
 
   // Get courier statistics: [0]=todayDeliveries, [1]=totalDeliveries,
   // [2]=totalIncome
-  static array<int> ^ GetCourierStats(int courierID) {
-    CourierStats stats = NativeGetCourierStats(courierID);
-    array<int> ^ result = gcnew array<int>(3);
-    result[0] = stats.todayDeliveries;
-    result[1] = stats.totalDeliveries;
-    result[2] = stats.totalIncome;
-    return result;
+  static array<int> ^
+      GetCourierStats(int courierID) {
+        CourierStats stats = NativeGetCourierStats(courierID);
+        array<int> ^ result = gcnew array<int>(3);
+        result[0] = stats.todayDeliveries;
+        result[1] = stats.totalDeliveries;
+        result[2] = stats.totalIncome;
+        return result;
+      }
+
+      // Delete transaction (admin)
+      static bool DeleteTransaction(int transactionID) {
+    if (g_db == nullptr)
+      return false;
+
+    // First delete related income records
+    const char *sqlIncome = "DELETE FROM income WHERE transaction_id = ?;";
+    sqlite3_stmt *stmtIncome;
+
+    int rc = sqlite3_prepare_v2(g_db, sqlIncome, -1, &stmtIncome, nullptr);
+    if (rc == SQLITE_OK) {
+      sqlite3_bind_int(stmtIncome, 1, transactionID);
+      sqlite3_step(stmtIncome);
+      sqlite3_finalize(stmtIncome);
+    }
+
+    // Then delete the transaction
+    const char *sql = "DELETE FROM transactions WHERE id = ?;";
+    sqlite3_stmt *stmt;
+
+    rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+      return false;
+
+    sqlite3_bind_int(stmt, 1, transactionID);
+
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    return rc == SQLITE_DONE;
   }
 };

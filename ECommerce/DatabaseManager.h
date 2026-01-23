@@ -33,6 +33,7 @@ public:
 
   // Admin functions - Transactions
   static DataTable ^ GetAllTransactionsTable();
+  static bool UpdateTransactionStatus(int transactionID, String ^ newStatus);
 
   // Admin functions - Dashboard
   static array<int> ^ GetDashboardStats();
@@ -64,4 +65,7 @@ public:
   static bool ClaimDelivery(int transactionID, int courierID);
   static bool CompleteDelivery(int transactionID, int courierID);
   static array<int> ^ GetCourierStats(int courierID);
+
+  // Admin transaction management
+  static bool DeleteTransaction(int transactionID);
 };

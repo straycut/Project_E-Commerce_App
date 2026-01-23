@@ -275,7 +275,7 @@ private:
       // 
       // btnClaim
       // 
-      this->btnClaim->BackColor = System::Drawing::Color::LightGreen;
+      this->btnClaim->BackColor = System::Drawing::Color::White;
       this->btnClaim->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
       this->btnClaim->Location = System::Drawing::Point(125, 406);
       this->btnClaim->Name = L"btnClaim";
@@ -334,7 +334,7 @@ private:
       // 
       // btnComplete
       // 
-      this->btnComplete->BackColor = System::Drawing::Color::LightBlue;
+      this->btnComplete->BackColor = System::Drawing::Color::White;
       this->btnComplete->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
       this->btnComplete->Location = System::Drawing::Point(125, 406);
       this->btnComplete->Name = L"btnComplete";
