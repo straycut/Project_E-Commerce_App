@@ -32,6 +32,11 @@ void adminForm::LoadDashboardStats() {
       L"Merchant: Rp " + String::Format("{0:N0}", income[2]);
   lblCourierIncome->Text =
       L"Courier: Rp " + String::Format("{0:N0}", income[3]);
+
+  // Update admin saldo display
+  int adminSaldo = DatabaseManager::GetUserSaldo(currentUserID);
+  lblAdminWithdrawLabel->Text = 
+      L"Tarik Saldo (Saldo: Rp " + String::Format("{0:N0}", adminSaldo) + L"):";
 }
 
 void adminForm::LoadUsers() { FilterUsers(); }
@@ -516,6 +521,39 @@ System::Void adminForm::btnDeleteTransaction_Click(System::Object ^ sender,
       LoadTransactions();
     } else {
       MessageBox::Show("Gagal menghapus transaksi!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
+}
+
+System::Void adminForm::btnAdminWithdraw_Click(System::Object ^ sender,
+                                               System::EventArgs ^ e) {
+  int amount = 0;
+  if (!Int32::TryParse(txtAdminWithdrawAmount->Text, amount) || amount <= 0) {
+    MessageBox::Show("Masukkan jumlah penarikan yang valid!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
+  if (amount > currentSaldo) {
+    MessageBox::Show("Saldo tidak mencukupi!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (MessageBox::Show("Tarik saldo sebesar Rp " +
+                           String::Format("{0:N0}", amount) + "?",
+                       "Konfirmasi Penarikan", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
+    if (DatabaseManager::WithdrawSaldo(currentUserID, amount)) {
+      MessageBox::Show("Penarikan berhasil!", "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
+      txtAdminWithdrawAmount->Text = "";
+      LoadDashboardStats();
+    } else {
+      MessageBox::Show("Gagal melakukan penarikan!", "Error",
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }

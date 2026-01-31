@@ -16,7 +16,15 @@ using namespace System::Drawing;
 public
 ref class adminForm : public System::Windows::Forms::Form {
 public:
-  adminForm(void) { InitializeComponent(); }
+public:
+  adminForm(int userID) {
+    InitializeComponent();
+    currentUserID = userID;
+  }
+  adminForm(void) {
+    InitializeComponent();
+    currentUserID = 0;
+  }
 
 protected:
   ~adminForm() {
@@ -24,6 +32,9 @@ protected:
       delete components;
     }
   }
+
+private:
+  int currentUserID;
 
   // UI Controls
 private:
@@ -149,6 +160,13 @@ private:
   System::Windows::Forms::Button ^ btnCancelAddUser;
 
   // Income controls
+private:
+  System::Windows::Forms::Label ^ lblAdminWithdrawLabel;
+private:
+  System::Windows::Forms::TextBox ^ txtAdminWithdrawAmount;
+private:
+  System::Windows::Forms::Button ^ btnAdminWithdraw;
+
 private:
   System::Windows::Forms::DataGridView ^ dgvIncome;
 
@@ -313,6 +331,9 @@ private:
     this->txtEditProductStock = (gcnew System::Windows::Forms::TextBox());
     this->btnSaveProduct = (gcnew System::Windows::Forms::Button());
     this->btnCancelEditProduct = (gcnew System::Windows::Forms::Button());
+    this->lblAdminWithdrawLabel = (gcnew System::Windows::Forms::Label());
+    this->txtAdminWithdrawAmount = (gcnew System::Windows::Forms::TextBox());
+    this->btnAdminWithdraw = (gcnew System::Windows::Forms::Button());
     this->panelStats = (gcnew System::Windows::Forms::Panel());
     this->btnLogout = (gcnew System::Windows::Forms::Button());
     this->tabControl->SuspendLayout();
@@ -390,6 +411,9 @@ private:
     this->panelIncomeBreakdown->Controls->Add(this->lblAppIncome);
     this->panelIncomeBreakdown->Controls->Add(this->lblMerchantIncome);
     this->panelIncomeBreakdown->Controls->Add(this->lblCourierIncome);
+    this->panelIncomeBreakdown->Controls->Add(this->lblAdminWithdrawLabel);
+    this->panelIncomeBreakdown->Controls->Add(this->txtAdminWithdrawAmount);
+    this->panelIncomeBreakdown->Controls->Add(this->btnAdminWithdraw);
     this->panelIncomeBreakdown->Location = System::Drawing::Point(3, 3);
     this->panelIncomeBreakdown->Name = L"panelIncomeBreakdown";
     this->panelIncomeBreakdown->Size = System::Drawing::Size(374, 132);
@@ -446,6 +470,35 @@ private:
     this->lblCourierIncome->Size = System::Drawing::Size(94, 20);
     this->lblCourierIncome->TabIndex = 13;
     this->lblCourierIncome->Text = L"Courier: Rp 0";
+    // 
+    // lblAdminWithdrawLabel
+    // 
+    this->lblAdminWithdrawLabel->AutoSize = true;
+    this->lblAdminWithdrawLabel->Location = System::Drawing::Point(200, 45);
+    this->lblAdminWithdrawLabel->Name = L"lblAdminWithdrawLabel";
+    this->lblAdminWithdrawLabel->Size = System::Drawing::Size(66, 13);
+    this->lblAdminWithdrawLabel->TabIndex = 14;
+    this->lblAdminWithdrawLabel->Text = L"Tarik Saldo:";
+    // 
+    // txtAdminWithdrawAmount
+    // 
+    this->txtAdminWithdrawAmount->Location = System::Drawing::Point(203, 65);
+    this->txtAdminWithdrawAmount->Name = L"txtAdminWithdrawAmount";
+    this->txtAdminWithdrawAmount->Size = System::Drawing::Size(150, 20);
+    this->txtAdminWithdrawAmount->TabIndex = 15;
+    // 
+    // btnAdminWithdraw
+    // 
+    this->btnAdminWithdraw->BackColor = System::Drawing::Color::Teal;
+    this->btnAdminWithdraw->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnAdminWithdraw->ForeColor = System::Drawing::Color::White;
+    this->btnAdminWithdraw->Location = System::Drawing::Point(203, 90);
+    this->btnAdminWithdraw->Name = L"btnAdminWithdraw";
+    this->btnAdminWithdraw->Size = System::Drawing::Size(100, 25);
+    this->btnAdminWithdraw->TabIndex = 16;
+    this->btnAdminWithdraw->Text = L"Tarik";
+    this->btnAdminWithdraw->UseVisualStyleBackColor = false;
+    this->btnAdminWithdraw->Click += gcnew System::EventHandler(this, &adminForm::btnAdminWithdraw_Click);
     //
     // panel1
     //
@@ -1314,5 +1367,8 @@ private:
 private:
   System::Void lblAppIncome_Click(System::Object ^ sender,
                                   System::EventArgs ^ e) {}
+
+private:
+  System::Void btnAdminWithdraw_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

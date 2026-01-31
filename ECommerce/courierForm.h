@@ -69,6 +69,18 @@ private:
   System::Windows::Forms::Label ^ lblTotalIncome;
 
 private:
+  System::Windows::Forms::Label ^ lblCurrentBalance;
+
+private:
+  System::Windows::Forms::Label ^ lblWithdrawLabel;
+
+private:
+  System::Windows::Forms::TextBox ^ txtWithdrawAmount;
+
+private:
+  System::Windows::Forms::Button ^ btnWithdraw;
+
+private:
   System::Windows::Forms::Button ^ btnRefreshDashboard;
 
   // Pending
@@ -121,6 +133,10 @@ private:
       this->lblTodayDeliveries = (gcnew System::Windows::Forms::Label());
       this->lblTotalDeliveries = (gcnew System::Windows::Forms::Label());
       this->lblTotalIncome = (gcnew System::Windows::Forms::Label());
+      this->lblCurrentBalance = (gcnew System::Windows::Forms::Label());
+      this->lblWithdrawLabel = (gcnew System::Windows::Forms::Label());
+      this->txtWithdrawAmount = (gcnew System::Windows::Forms::TextBox());
+      this->btnWithdraw = (gcnew System::Windows::Forms::Button());
       this->btnRefreshDashboard = (gcnew System::Windows::Forms::Button());
       this->tabPending = (gcnew System::Windows::Forms::TabPage());
       this->lblPendingTitle = (gcnew System::Windows::Forms::Label());
@@ -165,6 +181,10 @@ private:
       this->tabDashboard->Controls->Add(this->lblTodayDeliveries);
       this->tabDashboard->Controls->Add(this->lblTotalDeliveries);
       this->tabDashboard->Controls->Add(this->lblTotalIncome);
+      this->tabDashboard->Controls->Add(this->lblCurrentBalance);
+      this->tabDashboard->Controls->Add(this->lblWithdrawLabel);
+      this->tabDashboard->Controls->Add(this->txtWithdrawAmount);
+      this->tabDashboard->Controls->Add(this->btnWithdraw);
       this->tabDashboard->Controls->Add(this->btnRefreshDashboard);
       this->tabDashboard->Location = System::Drawing::Point(4, 22);
       this->tabDashboard->Name = L"tabDashboard";
@@ -216,12 +236,55 @@ private:
       this->lblTotalIncome->TabIndex = 3;
       this->lblTotalIncome->Text = L"Pendapatan: Rp 0";
       // 
+      // lblCurrentBalance
+      // 
+      this->lblCurrentBalance->AutoSize = true;
+      this->lblCurrentBalance->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
+      this->lblCurrentBalance->ForeColor = System::Drawing::Color::DarkBlue;
+      this->lblCurrentBalance->Location = System::Drawing::Point(21, 190);
+      this->lblCurrentBalance->Name = L"lblCurrentBalance";
+      this->lblCurrentBalance->Size = System::Drawing::Size(130, 25);
+      this->lblCurrentBalance->TabIndex = 4;
+      this->lblCurrentBalance->Text = L"Saldo: Rp 0";
+      // 
+      // lblWithdrawLabel
+      // 
+      this->lblWithdrawLabel->AutoSize = true;
+      this->lblWithdrawLabel->Font = (gcnew System::Drawing::Font(L"Segoe UI", 12));
+      this->lblWithdrawLabel->Location = System::Drawing::Point(22, 240);
+      this->lblWithdrawLabel->Name = L"lblWithdrawLabel";
+      this->lblWithdrawLabel->Size = System::Drawing::Size(110, 21);
+      this->lblWithdrawLabel->TabIndex = 5;
+      this->lblWithdrawLabel->Text = L"Tarik Saldo:";
+      // 
+      // txtWithdrawAmount
+      // 
+      this->txtWithdrawAmount->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
+      this->txtWithdrawAmount->Location = System::Drawing::Point(26, 264);
+      this->txtWithdrawAmount->Name = L"txtWithdrawAmount";
+      this->txtWithdrawAmount->Size = System::Drawing::Size(200, 27);
+      this->txtWithdrawAmount->TabIndex = 6;
+      // 
+      // btnWithdraw
+      // 
+      this->btnWithdraw->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnWithdraw->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+      this->btnWithdraw->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnWithdraw->ForeColor = System::Drawing::Color::White;
+      this->btnWithdraw->Location = System::Drawing::Point(26, 297);
+      this->btnWithdraw->Name = L"btnWithdraw";
+      this->btnWithdraw->Size = System::Drawing::Size(100, 30);
+      this->btnWithdraw->TabIndex = 7;
+      this->btnWithdraw->Text = L"Tarik";
+      this->btnWithdraw->UseVisualStyleBackColor = false;
+      this->btnWithdraw->Click += gcnew System::EventHandler(this, &courierForm::btnWithdraw_Click);
+      // 
       // btnRefreshDashboard
       // 
       this->btnRefreshDashboard->Location = System::Drawing::Point(26, 398);
       this->btnRefreshDashboard->Name = L"btnRefreshDashboard";
       this->btnRefreshDashboard->Size = System::Drawing::Size(93, 30);
-      this->btnRefreshDashboard->TabIndex = 4;
+      this->btnRefreshDashboard->TabIndex = 8;
       this->btnRefreshDashboard->Text = L"Refresh";
       this->btnRefreshDashboard->UseVisualStyleBackColor = true;
       this->btnRefreshDashboard->Click += gcnew System::EventHandler(this, &courierForm::btnRefreshDashboard_Click);
@@ -453,6 +516,7 @@ private:
                                  System::EventArgs ^ e);
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
+  System::Void btnWithdraw_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

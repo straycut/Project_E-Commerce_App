@@ -38,6 +38,7 @@ struct TransactionData {
   int productID;
   int customerID;
   int affiliateID;
+  int totalPrice;
   std::string status;
   std::string createdAt;
   std::string customerAddress;
@@ -878,6 +879,7 @@ static bool NativeUpdateUserAddress(int userID, const std::string &alamat) {
 }
 
 // Purchase product - create transaction and handle money
+// Purchase product - create transaction and handle money
 static bool NativePurchaseProduct(int productID, int customerID) {
   if (g_db == nullptr)
     return false;
@@ -901,6 +903,16 @@ static bool NativePurchaseProduct(int productID, int customerID) {
   if (harga == 0 || merchantID == 0)
     return false;
 
+  // Get Admin ID (assume first admin found)
+  int adminID = 0;
+  const char *sqlAdmin = "SELECT id FROM users WHERE role = 'Admin' ORDER BY id ASC LIMIT 1;";
+  if (sqlite3_prepare_v2(g_db, sqlAdmin, -1, &stmt, nullptr) == SQLITE_OK) {
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      adminID = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+  }
+
   // Check customer saldo
   int saldo = NativeGetUserSaldo(customerID);
   if (saldo < harga)
@@ -915,17 +927,31 @@ static bool NativePurchaseProduct(int productID, int customerID) {
     return false;
   }
 
-  // Calculate merchant income (harga - komisi aplikasi)
-  int merchantIncome = harga - (harga * komisi / 100);
+  // Calculate commissions
+  int appCommission = harga * komisi / 100;
+  int merchantIncome = harga - appCommission;
+
+  // Update merchant saldo
   int merchantSaldo = NativeGetUserSaldo(merchantID);
   if (!NativeUpdateUserSaldo(merchantID, merchantSaldo + merchantIncome)) {
     ExecuteSQL("ROLLBACK;");
     return false;
   }
 
+  // Update admin saldo (if admin exists)
+  if (adminID > 0 && appCommission > 0) {
+    int adminSaldo = NativeGetUserSaldo(adminID);
+    if (!NativeUpdateUserSaldo(adminID, adminSaldo + appCommission)) {
+      ExecuteSQL("ROLLBACK;");
+      return false;
+    }
+  }
+
   // Create transaction
   const char *sqlTrans = "INSERT INTO transactions (product_id, customer_id, "
                          "status) VALUES (?, ?, 'pending');";
+  int transID = 0;
+  
   if (sqlite3_prepare_v2(g_db, sqlTrans, -1, &stmt, nullptr) == SQLITE_OK) {
     sqlite3_bind_int(stmt, 1, productID);
     sqlite3_bind_int(stmt, 2, customerID);
@@ -935,20 +961,36 @@ static bool NativePurchaseProduct(int productID, int customerID) {
       ExecuteSQL("ROLLBACK;");
       return false;
     }
+    transID = (int)sqlite3_last_insert_rowid(g_db);
+  } else {
+    ExecuteSQL("ROLLBACK;");
+    return false;
   }
 
-  int transID = (int)sqlite3_last_insert_rowid(g_db);
-
   // Add income record for merchant
-  const char *sqlIncome =
+  const char *sqlIncomeMerchant =
       "INSERT INTO income (user_id, transaction_id, amount, type, description) "
       "VALUES (?, ?, ?, 'sale', 'Penjualan produk');";
-  if (sqlite3_prepare_v2(g_db, sqlIncome, -1, &stmt, nullptr) == SQLITE_OK) {
+  if (sqlite3_prepare_v2(g_db, sqlIncomeMerchant, -1, &stmt, nullptr) == SQLITE_OK) {
     sqlite3_bind_int(stmt, 1, merchantID);
     sqlite3_bind_int(stmt, 2, transID);
     sqlite3_bind_int(stmt, 3, merchantIncome);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+  }
+
+  // Add income record for Admin
+  if (adminID > 0 && appCommission > 0) {
+    const char *sqlIncomeAdmin =
+        "INSERT INTO income (user_id, transaction_id, amount, type, description) "
+        "VALUES (?, ?, ?, 'commission', 'Komisi aplikasi');";
+    if (sqlite3_prepare_v2(g_db, sqlIncomeAdmin, -1, &stmt, nullptr) == SQLITE_OK) {
+      sqlite3_bind_int(stmt, 1, adminID);
+      sqlite3_bind_int(stmt, 2, transID);
+      sqlite3_bind_int(stmt, 3, appCommission);
+      sqlite3_step(stmt);
+      sqlite3_finalize(stmt);
+    }
   }
 
   ExecuteSQL("COMMIT;");
@@ -965,9 +1007,11 @@ NativeGetTransactionsByCustomer(int customerID) {
   const char *sql =
       "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, "
       "0), t.status, COALESCE(t.created_at, ''), "
-      "COALESCE(u_courier.username, '') "
+      "COALESCE(u_courier.username, ''), COALESCE(p.harga, 0), "
+      "COALESCE(p.nama, '') "
       "FROM transactions t "
       "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
       "WHERE t.customer_id = ? ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
@@ -990,6 +1034,10 @@ NativeGetTransactionsByCustomer(int customerID) {
     const char *courierName =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.courierName = courierName ? courierName : "";
+    trans.totalPrice = sqlite3_column_int(stmt, 7);
+    const char *productName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    trans.customerName = productName ? productName : ""; // Reusing field for product name
     transactions.push_back(trans);
   }
 
@@ -1018,6 +1066,108 @@ static bool NativeConfirmDelivery(int transactionID, int customerID) {
 
   return rc == SQLITE_DONE && sqlite3_changes(g_db) > 0;
 }
+
+// Withdraw saldo - for couriers and merchants
+static bool NativeWithdrawSaldo(int userID, int amount) {
+  if (g_db == nullptr)
+    return false;
+
+  // Check current saldo
+  int currentSaldo = NativeGetUserSaldo(userID);
+  if (currentSaldo < amount)
+    return false;
+
+  // Deduct saldo
+  return NativeUpdateUserSaldo(userID, currentSaldo - amount);
+}
+
+// Cancel order and refund customer
+static bool NativeCancelOrder(int transactionID, int customerID) {
+  if (g_db == nullptr)
+    return false;
+
+  // Get transaction details
+  const char *sqlGetTrans =
+      "SELECT t.product_id, t.customer_id, t.status, p.harga, p.komisi, "
+      "p.merchant_id "
+      "FROM transactions t "
+      "INNER JOIN products p ON t.product_id = p.id "
+      "WHERE t.id = ? AND t.customer_id = ?;";
+  sqlite3_stmt *stmt;
+
+  int productID = 0, custID = 0, harga = 0, komisi = 0, merchantID = 0;
+  std::string status;
+
+  int rc = sqlite3_prepare_v2(g_db, sqlGetTrans, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_int(stmt, 1, transactionID);
+  sqlite3_bind_int(stmt, 2, customerID);
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    productID = sqlite3_column_int(stmt, 0);
+    custID = sqlite3_column_int(stmt, 1);
+    const char *stat =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+    status = stat ? stat : "";
+    harga = sqlite3_column_int(stmt, 3);
+    komisi = sqlite3_column_int(stmt, 4);
+    merchantID = sqlite3_column_int(stmt, 5);
+  }
+  sqlite3_finalize(stmt);
+
+  // Only allow canceling pending orders
+  if (status != "pending")
+    return false;
+
+  // Begin transaction
+  ExecuteSQL("BEGIN TRANSACTION;");
+
+  // Refund customer
+  int customerSaldo = NativeGetUserSaldo(customerID);
+  if (!NativeUpdateUserSaldo(customerID, customerSaldo + harga)) {
+    ExecuteSQL("ROLLBACK;");
+    return false;
+  }
+
+  // Reverse merchant income
+  int merchantIncome = harga - (harga * komisi / 100);
+  int merchantSaldo = NativeGetUserSaldo(merchantID);
+  if (!NativeUpdateUserSaldo(merchantID, merchantSaldo - merchantIncome)) {
+    ExecuteSQL("ROLLBACK;");
+    return false;
+  }
+
+  // Delete income record for merchant
+  const char *sqlDeleteIncome =
+      "DELETE FROM income WHERE transaction_id = ? AND user_id = ? AND type = "
+      "'sale';";
+  if (sqlite3_prepare_v2(g_db, sqlDeleteIncome, -1, &stmt, nullptr) ==
+      SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    sqlite3_bind_int(stmt, 2, merchantID);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  // Update transaction status to cancelled
+  const char *sqlUpdate =
+      "UPDATE transactions SET status = 'cancelled' WHERE id = ?;";
+  if (sqlite3_prepare_v2(g_db, sqlUpdate, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+      ExecuteSQL("ROLLBACK;");
+      return false;
+    }
+  }
+
+  ExecuteSQL("COMMIT;");
+  return true;
+}
+
 
 // ============ Courier Functions ============
 
@@ -1671,20 +1821,22 @@ public:
   static DataTable ^ GetTransactionsByCustomer(int customerID) {
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("ID", Int32::typeid);
-    dt->Columns->Add("ProductID", Int32::typeid);
-    dt->Columns->Add("Kurir", String::typeid);
+    dt->Columns->Add("Produk", String::typeid);
+    dt->Columns->Add("Total", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
-    dt->Columns->Add("Date", String::typeid);
+    dt->Columns->Add("Kurir", String::typeid);
+    dt->Columns->Add("Tanggal", String::typeid);
 
     std::vector<TransactionData> transactions =
         NativeGetTransactionsByCustomer(customerID);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
       row["ID"] = trans.transID;
-      row["ProductID"] = trans.productID;
-      row["Kurir"] = gcnew String(trans.courierName.c_str());
+      row["Produk"] = gcnew String(trans.customerName.c_str()); // Product name
+      row["Total"] = trans.totalPrice;
       row["Status"] = gcnew String(trans.status.c_str());
-      row["Date"] = gcnew String(trans.createdAt.c_str());
+      row["Kurir"] = gcnew String(trans.courierName.c_str());
+      row["Tanggal"] = gcnew String(trans.createdAt.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1695,6 +1847,17 @@ public:
   static bool ConfirmDelivery(int transactionID, int customerID) {
     return NativeConfirmDelivery(transactionID, customerID);
   }
+
+  // Withdraw saldo for couriers and merchants
+  static bool WithdrawSaldo(int userID, int amount) {
+    return NativeWithdrawSaldo(userID, amount);
+  }
+
+  // Cancel order and refund customer
+  static bool CancelOrder(int transactionID, int customerID) {
+    return NativeCancelOrder(transactionID, customerID);
+  }
+
 
   // ============ Courier Functions ============
 

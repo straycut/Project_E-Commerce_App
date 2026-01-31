@@ -12,6 +12,21 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
   dgvCart->DataSource = cartTable;
 }
 
+System::Void customerForm::tabControl_SelectedIndexChanged(System::Object ^ sender,
+                                                           System::EventArgs ^ e) {
+  if (tabControl->SelectedTab == tabHistory) {
+    LoadHistory();
+  } else if (tabControl->SelectedTab == tabCatalog) {
+    LoadCatalog();
+    LoadSaldo();
+  } else if (tabControl->SelectedTab == tabProfile) {
+    LoadProfile();
+    LoadSaldo();
+  } else if (tabControl->SelectedTab == tabCart) {
+    LoadSaldo(); 
+  }
+}
+
 void customerForm::LoadCatalog() {
   dgvProducts->DataSource = DatabaseManager::GetAllProductsWithMerchantName();
   // Hide unnecessary columns
@@ -290,6 +305,51 @@ System::Void customerForm::btnSaveAlamat_Click(System::Object ^ sender,
   } else {
     MessageBox::Show("Gagal menyimpan alamat!", "Error", MessageBoxButtons::OK,
                      MessageBoxIcon::Error);
+  }
+}
+
+System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
+                                                System::EventArgs ^ e) {
+  if (dgvHistory->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih pesanan yang ingin dibatalkan!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transactionID =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
+  String ^ status = dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  
+  // Only allow canceling pending orders
+  if (status != "pending") {
+    MessageBox::Show(
+        "Hanya pesanan dengan status 'pending' yang dapat dibatalkan!\\n\\n" +
+        "Status pesanan ini: " + status,
+        "Tidak Dapat Dibatalkan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int totalPrice =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["Total"]->Value);
+
+  if (MessageBox::Show(
+          "Batalkan pesanan ini?\\n\\nTotal: Rp " +
+              String::Format("{0:N0}", totalPrice) +
+              "\\n\\nSaldo Anda akan dikembalikan.",
+          "Konfirmasi Pembatalan", MessageBoxButtons::YesNo,
+          MessageBoxIcon::Question) == System::Windows::Forms::DialogResult::Yes) {
+    if (DatabaseManager::CancelOrder(transactionID, currentUserID)) {
+      MessageBox::Show(
+          "Pesanan berhasil dibatalkan!\\n\\nSaldo Rp " +
+              String::Format("{0:N0}", totalPrice) +
+              " telah dikembalikan ke akun Anda.",
+          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      LoadHistory();
+      LoadSaldo();
+    } else {
+      MessageBox::Show("Gagal membatalkan pesanan!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
   }
 }
 

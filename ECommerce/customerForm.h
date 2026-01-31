@@ -148,6 +148,9 @@ private:
 private:
   System::Windows::Forms::Button ^ btnConfirmReceived;
 
+private:
+  System::Windows::Forms::Button ^ btnCancelOrder;
+
   // Saldo
 private:
 private:
@@ -199,6 +202,7 @@ private:
     this->lblHistoryTitle = (gcnew System::Windows::Forms::Label());
     this->dgvHistory = (gcnew System::Windows::Forms::DataGridView());
     this->btnRefreshHistory = (gcnew System::Windows::Forms::Button());
+    this->btnCancelOrder = (gcnew System::Windows::Forms::Button());
     this->tabProfile = (gcnew System::Windows::Forms::TabPage());
     this->lblSaldoTitle = (gcnew System::Windows::Forms::Label());
     this->lblCurrentSaldo = (gcnew System::Windows::Forms::Label());
@@ -241,6 +245,8 @@ private:
     this->tabControl->SelectedIndex = 0;
     this->tabControl->Size = System::Drawing::Size(860, 480);
     this->tabControl->TabIndex = 0;
+    this->tabControl->SelectedIndexChanged += gcnew System::EventHandler(
+        this, &customerForm::tabControl_SelectedIndexChanged);
     //
     // tabCatalog
     //
@@ -471,6 +477,7 @@ private:
     this->tabHistory->Controls->Add(this->dgvHistory);
     this->tabHistory->Controls->Add(this->btnRefreshHistory);
     this->tabHistory->Controls->Add(this->btnConfirmReceived);
+    this->tabHistory->Controls->Add(this->btnCancelOrder);
     this->tabHistory->Location = System::Drawing::Point(4, 22);
     this->tabHistory->Name = L"tabHistory";
     this->tabHistory->Size = System::Drawing::Size(852, 454);
@@ -533,6 +540,25 @@ private:
     this->btnConfirmReceived->UseVisualStyleBackColor = false;
     this->btnConfirmReceived->Click += gcnew System::EventHandler(
         this, &customerForm::btnConfirmReceived_Click);
+    //
+    // btnCancelOrder
+    //
+    this->btnCancelOrder->BackColor = System::Drawing::Color::FromArgb(
+        static_cast<System::Int32>(static_cast<System::Byte>(220)),
+        static_cast<System::Int32>(static_cast<System::Byte>(53)),
+        static_cast<System::Int32>(static_cast<System::Byte>(69)));
+    this->btnCancelOrder->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
+    this->btnCancelOrder->Font = (gcnew System::Drawing::Font(
+        L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+    this->btnCancelOrder->ForeColor = System::Drawing::Color::White;
+    this->btnCancelOrder->Location = System::Drawing::Point(290, 407);
+    this->btnCancelOrder->Name = L"btnCancelOrder";
+    this->btnCancelOrder->Size = System::Drawing::Size(150, 30);
+    this->btnCancelOrder->TabIndex = 13;
+    this->btnCancelOrder->Text = L"Batalkan Pesanan";
+    this->btnCancelOrder->UseVisualStyleBackColor = false;
+    this->btnCancelOrder->Click += gcnew System::EventHandler(
+        this, &customerForm::btnCancelOrder_Click);
     //
     // tabProfile
     //
@@ -731,6 +757,8 @@ private:
 
   // ========== Event Handlers (implementations in customerForm.cpp) ==========
 private:
+  System::Void tabControl_SelectedIndexChanged(System::Object ^ sender,
+                                               System::EventArgs ^ e);
   System::Void customerForm_Load(System::Object ^ sender,
                                  System::EventArgs ^ e);
   void LoadCatalog();
@@ -753,6 +781,8 @@ private:
                                        System::EventArgs ^ e);
   System::Void btnConfirmReceived_Click(System::Object ^ sender,
                                         System::EventArgs ^ e);
+  System::Void btnCancelOrder_Click(System::Object ^ sender,
+                                    System::EventArgs ^ e);
   System::Void btnTopUp_Click(System::Object ^ sender, System::EventArgs ^ e);
   System::Void btnSaveAlamat_Click(System::Object ^ sender,
                                    System::EventArgs ^ e);

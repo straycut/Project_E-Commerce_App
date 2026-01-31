@@ -58,6 +58,8 @@ public:
   static bool PurchaseProduct(int productID, int customerID);
   static DataTable ^ GetTransactionsByCustomer(int customerID);
   static bool ConfirmDelivery(int transactionID, int customerID);
+  static bool WithdrawSaldo(int userID, int amount);
+  static bool CancelOrder(int transactionID, int customerID);
 
   // ============ Courier Functions ============
   static DataTable ^ GetPendingDeliveries();

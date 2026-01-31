@@ -48,7 +48,7 @@ System::Void loginF::btnMasuk_Click(System::Object ^ sender,
     this->Hide();
 
     if (role == "Admin") {
-      ECommerce::adminForm ^ adminF = gcnew ECommerce::adminForm();
+      ECommerce::adminForm ^ adminF = gcnew ECommerce::adminForm(userID);
       adminF->ShowDialog();
     } else if (role == "Merchant") {
       ECommerce::merchantForm ^ merchantF =

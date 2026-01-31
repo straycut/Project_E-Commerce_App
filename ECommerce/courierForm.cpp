@@ -17,6 +17,10 @@ void courierForm::LoadDashboard() {
   lblTotalDeliveries->Text = L"Total Pengiriman: " + stats[1];
   lblTotalIncome->Text =
       L"Pendapatan: Rp " + String::Format("{0:N0}", stats[2]);
+  
+  // Display current balance
+  int currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
+  lblCurrentBalance->Text = L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
 }
 
 void courierForm::LoadPending() {
@@ -113,6 +117,47 @@ System::Void courierForm::btnComplete_Click(System::Object ^ sender,
 System::Void courierForm::btnRefreshHistory_Click(System::Object ^ sender,
                                                   System::EventArgs ^ e) {
   LoadHistory();
+}
+
+System::Void courierForm::btnWithdraw_Click(System::Object ^ sender,
+                                            System::EventArgs ^ e) {
+  int amount = 0;
+  if (!Int32::TryParse(txtWithdrawAmount->Text, amount) || amount <= 0) {
+    MessageBox::Show("Masukkan jumlah penarikan yang valid (angka positif)!",
+                     "Peringatan", MessageBoxButtons::OK,
+                     MessageBoxIcon::Warning);
+    return;
+  }
+
+  // Check current balance
+  int currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
+  if (amount > currentSaldo) {
+    MessageBox::Show(
+        "Saldo tidak cukup!\\n\\nJumlah penarikan: Rp " +
+            String::Format("{0:N0}", amount) + "\\nSaldo Anda: Rp " +
+            String::Format("{0:N0}", currentSaldo),
+        "Saldo Tidak Cukup", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (MessageBox::Show("Tarik saldo sebesar Rp " +
+                           String::Format("{0:N0}", amount) + "?",
+                       "Konfirmasi Penarikan", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
+    if (DatabaseManager::WithdrawSaldo(currentUserID, amount)) {
+      MessageBox::Show(
+          "Penarikan berhasil!\\n\\nJumlah: Rp " +
+              String::Format("{0:N0}", amount) +
+              "\\n\\nSaldo akan ditransfer ke rekening Anda.",
+          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      LoadDashboard();
+      txtWithdrawAmount->Text = "";
+    } else {
+      MessageBox::Show("Gagal melakukan penarikan!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
 }
 
 System::Void courierForm::btnLogout_Click(System::Object ^ sender,
