@@ -572,7 +572,7 @@ private:
       // 
       this->btnAdminWithdraw->BackColor = System::Drawing::Color::MediumSeaGreen;
       this->btnAdminWithdraw->ForeColor = System::Drawing::Color::White;
-      this->btnAdminWithdraw->Location = System::Drawing::Point(22, 316);
+      this->btnAdminWithdraw->Location = System::Drawing::Point(29, 313);
       this->btnAdminWithdraw->Name = L"btnAdminWithdraw";
       this->btnAdminWithdraw->Size = System::Drawing::Size(200, 39);
       this->btnAdminWithdraw->TabIndex = 16;
@@ -585,7 +585,7 @@ private:
       this->lblAdminWithdrawLabel->AutoSize = true;
       this->lblAdminWithdrawLabel->Font = (gcnew System::Drawing::Font(L"Segoe UI", 12, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
           static_cast<System::Byte>(0)));
-      this->lblAdminWithdrawLabel->Location = System::Drawing::Point(18, 259);
+      this->lblAdminWithdrawLabel->Location = System::Drawing::Point(25, 256);
       this->lblAdminWithdrawLabel->Name = L"lblAdminWithdrawLabel";
       this->lblAdminWithdrawLabel->Size = System::Drawing::Size(88, 21);
       this->lblAdminWithdrawLabel->TabIndex = 14;
@@ -595,7 +595,7 @@ private:
       // 
       this->txtAdminWithdrawAmount->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
           static_cast<System::Byte>(0)));
-      this->txtAdminWithdrawAmount->Location = System::Drawing::Point(22, 283);
+      this->txtAdminWithdrawAmount->Location = System::Drawing::Point(29, 280);
       this->txtAdminWithdrawAmount->Name = L"txtAdminWithdrawAmount";
       this->txtAdminWithdrawAmount->Size = System::Drawing::Size(200, 27);
       this->txtAdminWithdrawAmount->TabIndex = 15;
