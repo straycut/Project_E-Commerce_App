@@ -209,7 +209,7 @@ private:
       // 
       this->lblTodayDeliveries->AutoSize = true;
       this->lblTodayDeliveries->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14));
-      this->lblTodayDeliveries->Location = System::Drawing::Point(21, 99);
+      this->lblTodayDeliveries->Location = System::Drawing::Point(21, 112);
       this->lblTodayDeliveries->Name = L"lblTodayDeliveries";
       this->lblTodayDeliveries->Size = System::Drawing::Size(193, 25);
       this->lblTodayDeliveries->TabIndex = 1;
@@ -219,7 +219,7 @@ private:
       // 
       this->lblTotalDeliveries->AutoSize = true;
       this->lblTotalDeliveries->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14));
-      this->lblTotalDeliveries->Location = System::Drawing::Point(21, 124);
+      this->lblTotalDeliveries->Location = System::Drawing::Point(21, 137);
       this->lblTotalDeliveries->Name = L"lblTotalDeliveries";
       this->lblTotalDeliveries->Size = System::Drawing::Size(172, 25);
       this->lblTotalDeliveries->TabIndex = 2;
@@ -230,7 +230,7 @@ private:
       this->lblTotalIncome->AutoSize = true;
       this->lblTotalIncome->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
       this->lblTotalIncome->ForeColor = System::Drawing::Color::DarkGreen;
-      this->lblTotalIncome->Location = System::Drawing::Point(21, 149);
+      this->lblTotalIncome->Location = System::Drawing::Point(21, 162);
       this->lblTotalIncome->Name = L"lblTotalIncome";
       this->lblTotalIncome->Size = System::Drawing::Size(168, 25);
       this->lblTotalIncome->TabIndex = 3;
@@ -241,9 +241,9 @@ private:
       this->lblCurrentBalance->AutoSize = true;
       this->lblCurrentBalance->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
       this->lblCurrentBalance->ForeColor = System::Drawing::Color::DarkBlue;
-      this->lblCurrentBalance->Location = System::Drawing::Point(21, 190);
+      this->lblCurrentBalance->Location = System::Drawing::Point(21, 53);
       this->lblCurrentBalance->Name = L"lblCurrentBalance";
-      this->lblCurrentBalance->Size = System::Drawing::Size(130, 25);
+      this->lblCurrentBalance->Size = System::Drawing::Size(112, 25);
       this->lblCurrentBalance->TabIndex = 4;
       this->lblCurrentBalance->Text = L"Saldo: Rp 0";
       // 
@@ -251,16 +251,16 @@ private:
       // 
       this->lblWithdrawLabel->AutoSize = true;
       this->lblWithdrawLabel->Font = (gcnew System::Drawing::Font(L"Segoe UI", 12));
-      this->lblWithdrawLabel->Location = System::Drawing::Point(22, 240);
+      this->lblWithdrawLabel->Location = System::Drawing::Point(22, 226);
       this->lblWithdrawLabel->Name = L"lblWithdrawLabel";
-      this->lblWithdrawLabel->Size = System::Drawing::Size(110, 21);
+      this->lblWithdrawLabel->Size = System::Drawing::Size(88, 21);
       this->lblWithdrawLabel->TabIndex = 5;
       this->lblWithdrawLabel->Text = L"Tarik Saldo:";
       // 
       // txtWithdrawAmount
       // 
       this->txtWithdrawAmount->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11));
-      this->txtWithdrawAmount->Location = System::Drawing::Point(26, 264);
+      this->txtWithdrawAmount->Location = System::Drawing::Point(26, 250);
       this->txtWithdrawAmount->Name = L"txtWithdrawAmount";
       this->txtWithdrawAmount->Size = System::Drawing::Size(200, 27);
       this->txtWithdrawAmount->TabIndex = 6;
@@ -268,12 +268,11 @@ private:
       // btnWithdraw
       // 
       this->btnWithdraw->BackColor = System::Drawing::Color::MediumSeaGreen;
-      this->btnWithdraw->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnWithdraw->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnWithdraw->ForeColor = System::Drawing::Color::White;
-      this->btnWithdraw->Location = System::Drawing::Point(26, 297);
+      this->btnWithdraw->Location = System::Drawing::Point(26, 283);
       this->btnWithdraw->Name = L"btnWithdraw";
-      this->btnWithdraw->Size = System::Drawing::Size(100, 30);
+      this->btnWithdraw->Size = System::Drawing::Size(200, 30);
       this->btnWithdraw->TabIndex = 7;
       this->btnWithdraw->Text = L"Tarik";
       this->btnWithdraw->UseVisualStyleBackColor = false;
@@ -339,10 +338,11 @@ private:
       // btnClaim
       // 
       this->btnClaim->BackColor = System::Drawing::Color::White;
-      this->btnClaim->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
+      this->btnClaim->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+          static_cast<System::Byte>(0)));
       this->btnClaim->Location = System::Drawing::Point(125, 406);
       this->btnClaim->Name = L"btnClaim";
-      this->btnClaim->Size = System::Drawing::Size(150, 30);
+      this->btnClaim->Size = System::Drawing::Size(125, 30);
       this->btnClaim->TabIndex = 3;
       this->btnClaim->Text = L"Ambil Pesanan";
       this->btnClaim->UseVisualStyleBackColor = false;
@@ -398,10 +398,11 @@ private:
       // btnComplete
       // 
       this->btnComplete->BackColor = System::Drawing::Color::White;
-      this->btnComplete->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
+      this->btnComplete->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+          static_cast<System::Byte>(0)));
       this->btnComplete->Location = System::Drawing::Point(125, 406);
       this->btnComplete->Name = L"btnComplete";
-      this->btnComplete->Size = System::Drawing::Size(150, 30);
+      this->btnComplete->Size = System::Drawing::Size(113, 30);
       this->btnComplete->TabIndex = 3;
       this->btnComplete->Text = L"Selesai Kirim";
       this->btnComplete->UseVisualStyleBackColor = false;
@@ -456,7 +457,6 @@ private:
       this->btnLogout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(220)), static_cast<System::Int32>(static_cast<System::Byte>(53)),
           static_cast<System::Int32>(static_cast<System::Byte>(69)));
       this->btnLogout->FlatAppearance->BorderSize = 0;
-      this->btnLogout->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnLogout->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnLogout->ForeColor = System::Drawing::Color::White;
       this->btnLogout->Location = System::Drawing::Point(782, 499);

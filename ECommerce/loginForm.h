@@ -163,7 +163,6 @@ private:
       // 
       this->btnMasuk->BackColor = System::Drawing::Color::MediumSeaGreen;
       this->btnMasuk->FlatAppearance->BorderSize = 0;
-      this->btnMasuk->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnMasuk->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
       this->btnMasuk->ForeColor = System::Drawing::Color::White;
       this->btnMasuk->Location = System::Drawing::Point(440, 253);
