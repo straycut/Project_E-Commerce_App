@@ -35,7 +35,7 @@ void adminForm::LoadDashboardStats() {
 
   // Update admin saldo display
   int adminSaldo = DatabaseManager::GetUserSaldo(currentUserID);
-  lblAdminWithdrawLabel->Text = 
+  lblAdminWithdrawLabel->Text =
       L"Tarik Saldo (Saldo: Rp " + String::Format("{0:N0}", adminSaldo) + L"):";
 }
 
@@ -339,6 +339,10 @@ System::Void adminForm::btnEditProduct_Click(System::Object ^ sender,
       dgvProducts->SelectedRows[0]->Cells["Harga"]->Value->ToString();
   txtEditProductStock->Text =
       dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
+  txtEditProductKategori->Text =
+      dgvProducts->SelectedRows[0]->Cells["Kategori"]->Value->ToString();
+  txtEditProductDeskripsi->Text =
+      dgvProducts->SelectedRows[0]->Cells["Deskripsi"]->Value->ToString();
 
   panelEditProduct->Visible = true;
   panelEditProduct->BringToFront();
@@ -399,8 +403,9 @@ System::Void adminForm::btnSaveProduct_Click(System::Object ^ sender,
     return;
   }
 
-  if (DatabaseManager::UpdateProduct(editProductID, txtEditProductName->Text,
-                                     harga, komisi, stok)) {
+  if (DatabaseManager::UpdateProduct(
+          editProductID, txtEditProductName->Text, harga, komisi, stok,
+          txtEditProductKategori->Text, txtEditProductDeskripsi->Text)) {
     MessageBox::Show("Produk berhasil diperbarui!", "Sukses",
                      MessageBoxButtons::OK, MessageBoxIcon::Information);
     ClearEditProductForm();
@@ -422,6 +427,8 @@ void adminForm::ClearEditProductForm() {
   txtEditProductName->Text = "";
   txtEditProductPrice->Text = "";
   txtEditProductStock->Text = "";
+  txtEditProductKategori->Text = "";
+  txtEditProductDeskripsi->Text = "";
   editProductID = 0;
 }
 

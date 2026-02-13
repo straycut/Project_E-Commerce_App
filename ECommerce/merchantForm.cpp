@@ -19,10 +19,11 @@ void merchantForm::LoadDashboard() {
   lblTotalSales->Text = L"Total Penjualan: " + stats[1];
   lblTotalIncome->Text =
       L"Pendapatan: Rp " + String::Format("{0:N0}", stats[2]);
-  
+
   // Display current balance
   int currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
-  lblCurrentBalance->Text = L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
+  lblCurrentBalance->Text =
+      L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
 }
 
 void merchantForm::LoadProfile() {
@@ -45,6 +46,8 @@ void merchantForm::ClearProductForm() {
   txtHarga->Text = "";
   txtKomisi->Text = "5";
   txtStok->Text = "0";
+  txtKategori->Text = "";
+  txtDeskripsi->Text = "";
   isEditMode = false;
   editProductID = 0;
   panelProduct->Visible = false;
@@ -83,6 +86,8 @@ System::Void merchantForm::btnAddProduct_Click(System::Object ^ sender,
   txtHarga->Text = "";
   txtKomisi->Text = "5";
   txtStok->Text = "0";
+  txtKategori->Text = "";
+  txtDeskripsi->Text = "";
   panelProduct->Visible = true;
   txtNamaProduk->Focus();
 }
@@ -106,6 +111,10 @@ System::Void merchantForm::btnEditProduct_Click(System::Object ^ sender,
   txtKomisi->Text = "5";
   txtStok->Text =
       dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
+  txtKategori->Text =
+      dgvProducts->SelectedRows[0]->Cells["Kategori"]->Value->ToString();
+  txtDeskripsi->Text =
+      dgvProducts->SelectedRows[0]->Cells["Deskripsi"]->Value->ToString();
   panelProduct->Visible = true;
   txtNamaProduk->Focus();
 }
@@ -168,11 +177,13 @@ System::Void merchantForm::btnSaveProduct_Click(System::Object ^ sender,
   bool success = false;
 
   if (isEditMode) {
-    success = DatabaseManager::UpdateProduct(editProductID, txtNamaProduk->Text,
-                                             harga, komisi, stok);
+    success = DatabaseManager::UpdateProduct(
+        editProductID, txtNamaProduk->Text, harga, komisi, stok,
+        txtKategori->Text, txtDeskripsi->Text);
   } else {
-    success = DatabaseManager::AddProduct(txtNamaProduk->Text, harga, komisi,
-                                          stok, currentUserID);
+    success = DatabaseManager::AddProduct(
+        txtNamaProduk->Text, harga, komisi, stok, currentUserID,
+        txtKategori->Text, txtDeskripsi->Text);
   }
 
   if (success) {
@@ -223,6 +234,10 @@ System::Void merchantForm::btnAddStock_Click(System::Object ^ sender,
   txtKomisi->Text = "5";
   txtStok->Text =
       dgvProducts->SelectedRows[0]->Cells["Stok"]->Value->ToString();
+  txtKategori->Text =
+      dgvProducts->SelectedRows[0]->Cells["Kategori"]->Value->ToString();
+  txtDeskripsi->Text =
+      dgvProducts->SelectedRows[0]->Cells["Deskripsi"]->Value->ToString();
   panelProduct->Visible = true;
   txtStok->Focus();
   txtStok->SelectAll();
@@ -255,11 +270,11 @@ System::Void merchantForm::btnWithdraw_Click(System::Object ^ sender,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
     if (DatabaseManager::WithdrawSaldo(currentUserID, amount)) {
-      MessageBox::Show(
-          "Penarikan berhasil!\\n\\nJumlah: Rp " +
-              String::Format("{0:N0}", amount) +
-              "\\n\\nSaldo akan ditransfer ke rekening Anda.",
-          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      MessageBox::Show("Penarikan berhasil!\\n\\nJumlah: Rp " +
+                           String::Format("{0:N0}", amount) +
+                           "\\n\\nSaldo akan ditransfer ke rekening Anda.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
       LoadDashboard();
       txtWithdrawAmount->Text = "";
     } else {

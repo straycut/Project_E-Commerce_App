@@ -42,9 +42,9 @@ public:
   // ============ Merchant Functions ============
   static DataTable ^ GetProductsByMerchant(int merchantID);
   static bool AddProduct(String ^ nama, int harga, int komisi, int stok,
-                         int merchantID);
+                         int merchantID, String ^ kategori, String ^ deskripsi);
   static bool UpdateProduct(int productID, String ^ nama, int harga, int komisi,
-                            int stok);
+                            int stok, String ^ kategori, String ^ deskripsi);
   static bool DeleteProduct(int productID);
   static DataTable ^ GetTransactionsByMerchant(int merchantID);
   static array<int> ^ GetMerchantStats(int merchantID);

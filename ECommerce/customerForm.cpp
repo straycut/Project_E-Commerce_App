@@ -12,8 +12,9 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
   dgvCart->DataSource = cartTable;
 }
 
-System::Void customerForm::tabControl_SelectedIndexChanged(System::Object ^ sender,
-                                                           System::EventArgs ^ e) {
+System::Void
+customerForm::tabControl_SelectedIndexChanged(System::Object ^ sender,
+                                              System::EventArgs ^ e) {
   if (tabControl->SelectedTab == tabHistory) {
     LoadHistory();
   } else if (tabControl->SelectedTab == tabCatalog) {
@@ -23,7 +24,7 @@ System::Void customerForm::tabControl_SelectedIndexChanged(System::Object ^ send
     LoadProfile();
     LoadSaldo();
   } else if (tabControl->SelectedTab == tabCart) {
-    LoadSaldo(); 
+    LoadSaldo();
   }
 }
 
@@ -41,12 +42,12 @@ void customerForm::LoadHistory() {
       DatabaseManager::GetTransactionsByCustomer(currentUserID);
 }
 
-void customerForm::FilterProducts(String^ keyword) {
-  DataTable^ allProducts = DatabaseManager::GetAllProductsWithMerchantName();
+void customerForm::FilterProducts(String ^ keyword) {
+  DataTable ^ allProducts = DatabaseManager::GetAllProductsWithMerchantName();
   if (String::IsNullOrWhiteSpace(keyword)) {
     dgvProducts->DataSource = allProducts;
   } else {
-    DataView^ dv = gcnew DataView(allProducts);
+    DataView ^ dv = gcnew DataView(allProducts);
     dv->RowFilter = "Nama LIKE '%" + keyword->Replace("'", "''") + "%'";
     dgvProducts->DataSource = dv;
   }
@@ -58,7 +59,7 @@ void customerForm::FilterProducts(String^ keyword) {
 }
 
 System::Void customerForm::txtSearch_TextChanged(System::Object ^ sender,
-                                                  System::EventArgs ^ e) {
+                                                 System::EventArgs ^ e) {
   FilterProducts(txtSearch->Text->Trim());
 }
 
@@ -148,11 +149,17 @@ System::Void customerForm::btnRemoveFromCart_Click(System::Object ^ sender,
 }
 
 void customerForm::UpdateCartTotal() {
-  int total = 0;
+  int subtotal = 0;
+  int totalItems = 0;
   for (int i = 0; i < cartTable->Rows->Count; i++) {
-    total += Convert::ToInt32(cartTable->Rows[i]["Total"]);
+    subtotal += Convert::ToInt32(cartTable->Rows[i]["Total"]);
+    totalItems += Convert::ToInt32(cartTable->Rows[i]["Jumlah"]);
   }
-  lblCartTotal->Text = L"Total: Rp " + String::Format("{0:N0}", total);
+  int ongkir = totalItems * 10000;
+  int grandTotal = subtotal + ongkir;
+  lblCartTotal->Text = L"Subtotal: Rp " + String::Format("{0:N0}", subtotal) +
+                       L" | Ongkir: Rp " + String::Format("{0:N0}", ongkir) +
+                       L" | Total: Rp " + String::Format("{0:N0}", grandTotal);
 }
 
 System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
@@ -165,23 +172,32 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
 
   // Calculate total
   int totalHarga = 0;
+  int totalItems = 0;
   for (int i = 0; i < cartTable->Rows->Count; i++) {
     totalHarga += Convert::ToInt32(cartTable->Rows[i]["Total"]);
+    totalItems += Convert::ToInt32(cartTable->Rows[i]["Jumlah"]);
   }
+  int ongkir = totalItems * 10000;
+  int grandTotal = totalHarga + ongkir;
 
-  // Check saldo
-  if (currentSaldo < totalHarga) {
+  // Check saldo (harga + ongkir)
+  if (currentSaldo < grandTotal) {
     MessageBox::Show(
-        "Saldo tidak cukup!\n\nTotal: Rp " +
-            String::Format("{0:N0}", totalHarga) + "\nSaldo Anda: Rp " +
+        "Saldo tidak cukup!\n\nSubtotal: Rp " +
+            String::Format("{0:N0}", totalHarga) + "\nOngkir: Rp " +
+            String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
+            String::Format("{0:N0}", grandTotal) + "\nSaldo Anda: Rp " +
             String::Format("{0:N0}", currentSaldo),
         "Saldo Tidak Cukup", MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
   if (MessageBox::Show("Checkout " + cartTable->Rows->Count.ToString() +
-                           " item?\n\nTotal: Rp " +
-                           String::Format("{0:N0}", totalHarga),
+                           " item?\n\nSubtotal: Rp " +
+                           String::Format("{0:N0}", totalHarga) + "\nOngkir (" +
+                           totalItems.ToString() + " item x Rp 10.000): Rp " +
+                           String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
+                           String::Format("{0:N0}", grandTotal),
                        "Konfirmasi Checkout", MessageBoxButtons::YesNo,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
@@ -203,18 +219,20 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
     }
 
     if (allSuccess) {
-      MessageBox::Show("Checkout berhasil!\n\nTotal: Rp " +
-                           String::Format("{0:N0}", totalHarga) +
-                           "\n\nPesanan Anda akan segera diproses.",
-                       "Sukses", MessageBoxButtons::OK,
-                       MessageBoxIcon::Information);
+      MessageBox::Show(
+          "Checkout berhasil!\n\nSubtotal: Rp " +
+              String::Format("{0:N0}", totalHarga) + "\nOngkir: Rp " +
+              String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
+              String::Format("{0:N0}", grandTotal) +
+              "\n\nPesanan Anda akan segera diproses.",
+          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
       cartTable->Rows->Clear();
       UpdateCartTotal();
       LoadSaldo();
       LoadHistory();
       LoadCatalog();
     } else {
-      MessageBox::Show("Gagal melakukan checkout!", "Error",
+      MessageBox::Show("Gagal melakukan checkout! Stok mungkin habis.", "Error",
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }
@@ -226,7 +244,7 @@ System::Void customerForm::btnRefreshHistory_Click(System::Object ^ sender,
 }
 
 System::Void customerForm::btnConfirmReceived_Click(System::Object ^ sender,
-                                                     System::EventArgs ^ e) {
+                                                    System::EventArgs ^ e) {
   if (dgvHistory->SelectedRows->Count == 0) {
     MessageBox::Show("Pilih pesanan yang akan dikonfirmasi!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
@@ -235,13 +253,16 @@ System::Void customerForm::btnConfirmReceived_Click(System::Object ^ sender,
 
   int transactionID =
       Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
-  String ^ status = dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  String ^ status =
+      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
 
   if (status != "delivered") {
-    MessageBox::Show(
-        "Pesanan hanya dapat dikonfirmasi jika sudah dikirim (status: delivered)!\n\n"
-        "Status saat ini: " + status,
-        "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    MessageBox::Show("Pesanan hanya dapat dikonfirmasi jika sudah dikirim "
+                     "(status: delivered)!\n\n"
+                     "Status saat ini: " +
+                         status,
+                     "Peringatan", MessageBoxButtons::OK,
+                     MessageBoxIcon::Warning);
     return;
   }
 
@@ -318,32 +339,34 @@ System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
 
   int transactionID =
       Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
-  String ^ status = dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
-  
+  String ^ status =
+      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
   // Only allow canceling pending orders
   if (status != "pending") {
     MessageBox::Show(
         "Hanya pesanan dengan status 'pending' yang dapat dibatalkan!\\n\\n" +
-        "Status pesanan ini: " + status,
-        "Tidak Dapat Dibatalkan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+            "Status pesanan ini: " + status,
+        "Tidak Dapat Dibatalkan", MessageBoxButtons::OK,
+        MessageBoxIcon::Warning);
     return;
   }
 
   int totalPrice =
       Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["Total"]->Value);
 
-  if (MessageBox::Show(
-          "Batalkan pesanan ini?\\n\\nTotal: Rp " +
-              String::Format("{0:N0}", totalPrice) +
-              "\\n\\nSaldo Anda akan dikembalikan.",
-          "Konfirmasi Pembatalan", MessageBoxButtons::YesNo,
-          MessageBoxIcon::Question) == System::Windows::Forms::DialogResult::Yes) {
+  if (MessageBox::Show("Batalkan pesanan ini?\\n\\nTotal: Rp " +
+                           String::Format("{0:N0}", totalPrice) +
+                           "\\n\\nSaldo Anda akan dikembalikan.",
+                       "Konfirmasi Pembatalan", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
     if (DatabaseManager::CancelOrder(transactionID, currentUserID)) {
-      MessageBox::Show(
-          "Pesanan berhasil dibatalkan!\\n\\nSaldo Rp " +
-              String::Format("{0:N0}", totalPrice) +
-              " telah dikembalikan ke akun Anda.",
-          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      MessageBox::Show("Pesanan berhasil dibatalkan!\\n\\nSaldo Rp " +
+                           String::Format("{0:N0}", totalPrice) +
+                           " telah dikembalikan ke akun Anda.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
       LoadHistory();
       LoadSaldo();
     } else {
