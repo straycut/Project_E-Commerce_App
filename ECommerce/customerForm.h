@@ -34,7 +34,8 @@ private:
 
 private:
   System::Windows::Forms::Button ^ btnTopUp;
-  int currentSaldo;
+private: System::Windows::Forms::Label^ label1;
+       int currentSaldo;
 
 public:
   customerForm(void) {
@@ -49,6 +50,8 @@ public:
     cartTable->Columns->Add("Harga", Int32::typeid);
     cartTable->Columns->Add("Jumlah", Int32::typeid);
     cartTable->Columns->Add("Total", Int32::typeid);
+    cartTable->Columns->Add("MerchantID", Int32::typeid);
+    cartTable->Columns->Add("Toko", String::typeid);
   }
 
   customerForm(int userID, String ^ username) {
@@ -63,6 +66,8 @@ public:
     cartTable->Columns->Add("Harga", Int32::typeid);
     cartTable->Columns->Add("Jumlah", Int32::typeid);
     cartTable->Columns->Add("Total", Int32::typeid);
+    cartTable->Columns->Add("MerchantID", Int32::typeid);
+    cartTable->Columns->Add("Toko", String::typeid);
   }
 
 protected:
@@ -135,6 +140,15 @@ private:
 private:
   System::Windows::Forms::Label ^ lblCartTotal;
 
+private:
+  System::Windows::Forms::NumericUpDown ^ nudCartQuantity;
+
+private:
+  System::Windows::Forms::Button ^ btnUpdateQuantity;
+
+private:
+  System::Windows::Forms::Label ^ lblEditQuantity;
+
   // History
 private:
   System::Windows::Forms::Label ^ lblHistoryTitle;
@@ -195,11 +209,15 @@ private:
       this->btnAddToCart = (gcnew System::Windows::Forms::Button());
       this->lblSaldoInfo = (gcnew System::Windows::Forms::Label());
       this->tabCart = (gcnew System::Windows::Forms::TabPage());
+      this->label1 = (gcnew System::Windows::Forms::Label());
       this->lblCartTitle = (gcnew System::Windows::Forms::Label());
       this->dgvCart = (gcnew System::Windows::Forms::DataGridView());
       this->btnRemoveFromCart = (gcnew System::Windows::Forms::Button());
       this->btnCheckout = (gcnew System::Windows::Forms::Button());
       this->lblCartTotal = (gcnew System::Windows::Forms::Label());
+      this->lblEditQuantity = (gcnew System::Windows::Forms::Label());
+      this->nudCartQuantity = (gcnew System::Windows::Forms::NumericUpDown());
+      this->btnUpdateQuantity = (gcnew System::Windows::Forms::Button());
       this->tabHistory = (gcnew System::Windows::Forms::TabPage());
       this->lblHistoryTitle = (gcnew System::Windows::Forms::Label());
       this->dgvHistory = (gcnew System::Windows::Forms::DataGridView());
@@ -224,6 +242,7 @@ private:
       (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->nudQuantity))->BeginInit();
       this->tabCart->SuspendLayout();
       (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dgvCart))->BeginInit();
+      (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->nudCartQuantity))->BeginInit();
       this->tabHistory->SuspendLayout();
       (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dgvHistory))->BeginInit();
       this->tabProfile->SuspendLayout();
@@ -335,8 +354,9 @@ private:
       // 
       // btnAddToCart
       // 
-      this->btnAddToCart->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(40)), static_cast<System::Int32>(static_cast<System::Byte>(167)),
-          static_cast<System::Int32>(static_cast<System::Byte>(69)));
+      this->btnAddToCart->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnAddToCart->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnAddToCart->FlatAppearance->BorderSize = 0;
       this->btnAddToCart->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnAddToCart->ForeColor = System::Drawing::Color::White;
       this->btnAddToCart->Location = System::Drawing::Point(260, 412);
@@ -351,7 +371,8 @@ private:
       // 
       this->lblSaldoInfo->AutoSize = true;
       this->lblSaldoInfo->Font = (gcnew System::Drawing::Font(L"Segoe UI", 12, System::Drawing::FontStyle::Bold));
-      this->lblSaldoInfo->ForeColor = System::Drawing::Color::DarkGreen;
+      this->lblSaldoInfo->ForeColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)), static_cast<System::Int32>(static_cast<System::Byte>(125)),
+          static_cast<System::Int32>(static_cast<System::Byte>(50)));
       this->lblSaldoInfo->Location = System::Drawing::Point(550, 15);
       this->lblSaldoInfo->Name = L"lblSaldoInfo";
       this->lblSaldoInfo->Size = System::Drawing::Size(94, 21);
@@ -360,17 +381,30 @@ private:
       // 
       // tabCart
       // 
+      this->tabCart->Controls->Add(this->label1);
       this->tabCart->Controls->Add(this->lblCartTitle);
       this->tabCart->Controls->Add(this->dgvCart);
       this->tabCart->Controls->Add(this->btnRemoveFromCart);
       this->tabCart->Controls->Add(this->btnCheckout);
       this->tabCart->Controls->Add(this->lblCartTotal);
+      this->tabCart->Controls->Add(this->lblEditQuantity);
+      this->tabCart->Controls->Add(this->nudCartQuantity);
+      this->tabCart->Controls->Add(this->btnUpdateQuantity);
       this->tabCart->Location = System::Drawing::Point(4, 22);
       this->tabCart->Name = L"tabCart";
       this->tabCart->Size = System::Drawing::Size(852, 454);
       this->tabCart->TabIndex = 5;
       this->tabCart->Text = L"Keranjang";
       this->tabCart->UseVisualStyleBackColor = true;
+      // 
+      // label1
+      // 
+      this->label1->AutoSize = true;
+      this->label1->Location = System::Drawing::Point(151, 427);
+      this->label1->Name = L"label1";
+      this->label1->Size = System::Drawing::Size(204, 13);
+      this->label1->TabIndex = 8;
+      this->label1->Text = L"biaya tambahan Ongkir adalah Rp 10.000";
       // 
       // lblCartTitle
       // 
@@ -398,8 +432,11 @@ private:
       // 
       // btnRemoveFromCart
       // 
-      this->btnRemoveFromCart->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(220)),
-          static_cast<System::Int32>(static_cast<System::Byte>(53)), static_cast<System::Int32>(static_cast<System::Byte>(69)));
+      this->btnRemoveFromCart->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(211)),
+          static_cast<System::Int32>(static_cast<System::Byte>(47)), static_cast<System::Int32>(static_cast<System::Byte>(47)));
+      this->btnRemoveFromCart->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnRemoveFromCart->FlatAppearance->BorderSize = 0;
+      this->btnRemoveFromCart->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnRemoveFromCart->ForeColor = System::Drawing::Color::White;
       this->btnRemoveFromCart->Location = System::Drawing::Point(717, 408);
       this->btnRemoveFromCart->Name = L"btnRemoveFromCart";
@@ -411,8 +448,9 @@ private:
       // 
       // btnCheckout
       // 
-      this->btnCheckout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(40)), static_cast<System::Int32>(static_cast<System::Byte>(167)),
-          static_cast<System::Int32>(static_cast<System::Byte>(69)));
+      this->btnCheckout->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnCheckout->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnCheckout->FlatAppearance->BorderSize = 0;
       this->btnCheckout->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
       this->btnCheckout->ForeColor = System::Drawing::Color::White;
       this->btnCheckout->Location = System::Drawing::Point(15, 402);
@@ -426,12 +464,47 @@ private:
       // lblCartTotal
       // 
       this->lblCartTotal->AutoSize = true;
-      this->lblCartTotal->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
-      this->lblCartTotal->Location = System::Drawing::Point(149, 408);
+      this->lblCartTotal->Font = (gcnew System::Drawing::Font(L"Segoe UI", 12, System::Drawing::FontStyle::Bold, System::Drawing::GraphicsUnit::Point,
+          static_cast<System::Byte>(0)));
+      this->lblCartTotal->Location = System::Drawing::Point(149, 402);
       this->lblCartTotal->Name = L"lblCartTotal";
-      this->lblCartTotal->Size = System::Drawing::Size(105, 25);
+      this->lblCartTotal->Size = System::Drawing::Size(89, 21);
       this->lblCartTotal->TabIndex = 4;
       this->lblCartTotal->Text = L"Total: Rp 0";
+      // 
+      // lblEditQuantity
+      // 
+      this->lblEditQuantity->AutoSize = true;
+      this->lblEditQuantity->Location = System::Drawing::Point(486, 415);
+      this->lblEditQuantity->Name = L"lblEditQuantity";
+      this->lblEditQuantity->Size = System::Drawing::Size(43, 13);
+      this->lblEditQuantity->TabIndex = 5;
+      this->lblEditQuantity->Text = L"Jumlah:";
+      // 
+      // nudCartQuantity
+      // 
+      this->nudCartQuantity->Location = System::Drawing::Point(541, 412);
+      this->nudCartQuantity->Minimum = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1, 0, 0, 0 });
+      this->nudCartQuantity->Name = L"nudCartQuantity";
+      this->nudCartQuantity->Size = System::Drawing::Size(60, 20);
+      this->nudCartQuantity->TabIndex = 6;
+      this->nudCartQuantity->Value = System::Decimal(gcnew cli::array< System::Int32 >(4) { 1, 0, 0, 0 });
+      // 
+      // btnUpdateQuantity
+      // 
+      this->btnUpdateQuantity->BackColor = System::Drawing::Color::White;
+      this->btnUpdateQuantity->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnUpdateQuantity->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)),
+          static_cast<System::Int32>(static_cast<System::Byte>(125)), static_cast<System::Int32>(static_cast<System::Byte>(50)));
+      this->btnUpdateQuantity->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnUpdateQuantity->ForeColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnUpdateQuantity->Location = System::Drawing::Point(611, 408);
+      this->btnUpdateQuantity->Name = L"btnUpdateQuantity";
+      this->btnUpdateQuantity->Size = System::Drawing::Size(100, 30);
+      this->btnUpdateQuantity->TabIndex = 7;
+      this->btnUpdateQuantity->Text = L"Ubah Jumlah";
+      this->btnUpdateQuantity->UseVisualStyleBackColor = false;
+      this->btnUpdateQuantity->Click += gcnew System::EventHandler(this, &customerForm::btnUpdateQuantity_Click);
       // 
       // tabHistory
       // 
@@ -482,10 +555,11 @@ private:
       // 
       // btnConfirmReceived
       // 
-      this->btnConfirmReceived->BackColor = System::Drawing::Color::White;
-      this->btnConfirmReceived->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-          static_cast<System::Byte>(0)));
-      this->btnConfirmReceived->ForeColor = System::Drawing::Color::Black;
+      this->btnConfirmReceived->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnConfirmReceived->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnConfirmReceived->FlatAppearance->BorderSize = 0;
+      this->btnConfirmReceived->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnConfirmReceived->ForeColor = System::Drawing::Color::White;
       this->btnConfirmReceived->Location = System::Drawing::Point(130, 411);
       this->btnConfirmReceived->Name = L"btnConfirmReceived";
       this->btnConfirmReceived->Size = System::Drawing::Size(139, 30);
@@ -496,10 +570,12 @@ private:
       // 
       // btnCancelOrder
       // 
-      this->btnCancelOrder->BackColor = System::Drawing::Color::White;
-      this->btnCancelOrder->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-          static_cast<System::Byte>(0)));
-      this->btnCancelOrder->ForeColor = System::Drawing::Color::Black;
+      this->btnCancelOrder->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(211)), static_cast<System::Int32>(static_cast<System::Byte>(47)),
+          static_cast<System::Int32>(static_cast<System::Byte>(47)));
+      this->btnCancelOrder->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnCancelOrder->FlatAppearance->BorderSize = 0;
+      this->btnCancelOrder->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnCancelOrder->ForeColor = System::Drawing::Color::White;
       this->btnCancelOrder->Location = System::Drawing::Point(284, 411);
       this->btnCancelOrder->Name = L"btnCancelOrder";
       this->btnCancelOrder->Size = System::Drawing::Size(116, 30);
@@ -541,7 +617,8 @@ private:
       // 
       this->lblCurrentSaldo->AutoSize = true;
       this->lblCurrentSaldo->Font = (gcnew System::Drawing::Font(L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
-      this->lblCurrentSaldo->ForeColor = System::Drawing::Color::DarkGreen;
+      this->lblCurrentSaldo->ForeColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)), static_cast<System::Int32>(static_cast<System::Byte>(125)),
+          static_cast<System::Int32>(static_cast<System::Byte>(50)));
       this->lblCurrentSaldo->Location = System::Drawing::Point(484, 80);
       this->lblCurrentSaldo->Name = L"lblCurrentSaldo";
       this->lblCurrentSaldo->Size = System::Drawing::Size(143, 32);
@@ -568,8 +645,11 @@ private:
       // 
       // btnTopUp
       // 
-      this->btnTopUp->BackColor = System::Drawing::Color::Honeydew;
-      this->btnTopUp->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Bold));
+      this->btnTopUp->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnTopUp->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnTopUp->FlatAppearance->BorderSize = 0;
+      this->btnTopUp->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnTopUp->ForeColor = System::Drawing::Color::White;
       this->btnTopUp->Location = System::Drawing::Point(487, 189);
       this->btnTopUp->Name = L"btnTopUp";
       this->btnTopUp->Size = System::Drawing::Size(200, 35);
@@ -610,6 +690,8 @@ private:
       // btnSaveAlamat
       // 
       this->btnSaveAlamat->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnSaveAlamat->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnSaveAlamat->FlatAppearance->BorderSize = 0;
       this->btnSaveAlamat->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
       this->btnSaveAlamat->ForeColor = System::Drawing::Color::White;
       this->btnSaveAlamat->Location = System::Drawing::Point(15, 201);
@@ -633,8 +715,9 @@ private:
       // 
       // btnLogout
       // 
-      this->btnLogout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(220)), static_cast<System::Int32>(static_cast<System::Byte>(53)),
-          static_cast<System::Int32>(static_cast<System::Byte>(69)));
+      this->btnLogout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(211)), static_cast<System::Int32>(static_cast<System::Byte>(47)),
+          static_cast<System::Int32>(static_cast<System::Byte>(47)));
+      this->btnLogout->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnLogout->FlatAppearance->BorderSize = 0;
       this->btnLogout->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnLogout->ForeColor = System::Drawing::Color::White;
@@ -668,6 +751,7 @@ private:
       this->tabCart->ResumeLayout(false);
       this->tabCart->PerformLayout();
       (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dgvCart))->EndInit();
+      (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->nudCartQuantity))->EndInit();
       this->tabHistory->ResumeLayout(false);
       this->tabHistory->PerformLayout();
       (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dgvHistory))->EndInit();
@@ -688,7 +772,7 @@ private:
   void LoadHistory();
   void LoadSaldo();
   void LoadProfile();
-  void FilterProducts(String^ keyword);
+  void FilterProducts(String ^ keyword);
   System::Void txtSearch_TextChanged(System::Object ^ sender,
                                      System::EventArgs ^ e);
   System::Void btnRefreshCatalog_Click(System::Object ^ sender,
@@ -700,6 +784,8 @@ private:
   System::Void btnCheckout_Click(System::Object ^ sender,
                                  System::EventArgs ^ e);
   void UpdateCartTotal();
+  System::Void btnUpdateQuantity_Click(System::Object ^ sender,
+                                       System::EventArgs ^ e);
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
   System::Void btnConfirmReceived_Click(System::Object ^ sender,

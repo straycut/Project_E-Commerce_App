@@ -5,6 +5,30 @@ namespace ECommerce {
 
 System::Void adminForm::adminForm_Load(System::Object ^ sender,
                                        System::EventArgs ^ e) {
+  // Apply DGV theming
+  array<DataGridView ^> ^
+      grids = {dgvUsers, dgvIncome, dgvTransactions, dgvProducts};
+  for each (DataGridView ^ dgv in grids) {
+    dgv->BackgroundColor = System::Drawing::Color::White;
+    dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
+    dgv->EnableHeadersVisualStyles = false;
+    dgv->ColumnHeadersDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(46, 125, 50);
+    dgv->ColumnHeadersDefaultCellStyle->ForeColor =
+        System::Drawing::Color::White;
+    dgv->ColumnHeadersDefaultCellStyle->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    dgv->DefaultCellStyle->SelectionBackColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    dgv->DefaultCellStyle->SelectionForeColor = System::Drawing::Color::Black;
+    dgv->DefaultCellStyle->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+    dgv->GridColor = System::Drawing::Color::FromArgb(224, 224, 224);
+    dgv->RowTemplate->Height = 32;
+    dgv->AlternatingRowsDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(245, 247, 250);
+    dgv->ColumnHeadersHeight = 36;
+  }
+
   LoadDashboardStats();
   LoadUsers();
   LoadIncome();
@@ -213,8 +237,8 @@ System::Void adminForm::btnDeleteUser_Click(System::Object ^ sender,
       dgvUsers->SelectedRows[0]->Cells["Username"]->Value->ToString();
   String ^ role = dgvUsers->SelectedRows[0]->Cells["Role"]->Value->ToString();
 
-  if (role == "Admin") {
-    MessageBox::Show("Cannot delete Admin account!", "Warning",
+  if (userID == currentUserID) {
+    MessageBox::Show("Tidak dapat menghapus akun Anda sendiri!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }

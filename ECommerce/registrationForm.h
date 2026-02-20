@@ -157,6 +157,7 @@ private:
       // btnDaftar
       // 
       this->btnDaftar->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnDaftar->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnDaftar->FlatAppearance->BorderSize = 0;
       this->btnDaftar->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
       this->btnDaftar->ForeColor = System::Drawing::Color::White;
@@ -182,11 +183,11 @@ private:
       // 
       // btnKembali
       // 
-      this->btnKembali->BackColor = System::Drawing::Color::Transparent;
-      this->btnKembali->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(0)),
-          static_cast<System::Int32>(static_cast<System::Byte>(122)), static_cast<System::Int32>(static_cast<System::Byte>(204)));
-      this->btnKembali->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9.75F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-          static_cast<System::Byte>(0)));
+      this->btnKembali->BackColor = System::Drawing::Color::White;
+      this->btnKembali->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnKembali->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)),
+          static_cast<System::Int32>(static_cast<System::Byte>(125)), static_cast<System::Int32>(static_cast<System::Byte>(50)));
+      this->btnKembali->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
       this->btnKembali->ForeColor = System::Drawing::Color::MediumSeaGreen;
       this->btnKembali->Location = System::Drawing::Point(440, 333);
       this->btnKembali->Name = L"btnKembali";

@@ -7,6 +7,30 @@ System::Void merchantForm::merchantForm_Load(System::Object ^ sender,
                                              System::EventArgs ^ e) {
   isEditMode = false;
   editProductID = 0;
+
+  // Apply DGV theming
+  array<DataGridView ^> ^ grids = {dgvProducts, dgvSales};
+  for each (DataGridView ^ dgv in grids) {
+    dgv->BackgroundColor = System::Drawing::Color::White;
+    dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
+    dgv->EnableHeadersVisualStyles = false;
+    dgv->ColumnHeadersDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(46, 125, 50);
+    dgv->ColumnHeadersDefaultCellStyle->ForeColor =
+        System::Drawing::Color::White;
+    dgv->ColumnHeadersDefaultCellStyle->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    dgv->DefaultCellStyle->SelectionBackColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    dgv->DefaultCellStyle->SelectionForeColor = System::Drawing::Color::Black;
+    dgv->DefaultCellStyle->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+    dgv->GridColor = System::Drawing::Color::FromArgb(224, 224, 224);
+    dgv->RowTemplate->Height = 32;
+    dgv->AlternatingRowsDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(245, 247, 250);
+    dgv->ColumnHeadersHeight = 36;
+  }
+
   LoadDashboard();
   LoadProducts();
   LoadSales();

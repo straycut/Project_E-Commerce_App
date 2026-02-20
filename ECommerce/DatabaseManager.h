@@ -55,7 +55,7 @@ public:
   static int GetUserSaldo(int userID);
   static bool UpdateUserSaldo(int userID, int newSaldo);
   static bool TopUpSaldo(int userID, int amount);
-  static bool PurchaseProduct(int productID, int customerID);
+  static bool PurchaseProduct(int productID, int customerID, bool chargeOngkir);
   static DataTable ^ GetTransactionsByCustomer(int customerID);
   static bool ConfirmDelivery(int transactionID, int customerID);
   static bool WithdrawSaldo(int userID, int amount);

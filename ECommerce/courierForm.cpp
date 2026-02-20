@@ -5,6 +5,29 @@ namespace ECommerce {
 
 System::Void courierForm::courierForm_Load(System::Object ^ sender,
                                            System::EventArgs ^ e) {
+  // Apply DGV theming
+  array<DataGridView ^> ^ grids = {dgvPending, dgvActive, dgvHistory};
+  for each (DataGridView ^ dgv in grids) {
+    dgv->BackgroundColor = System::Drawing::Color::White;
+    dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
+    dgv->EnableHeadersVisualStyles = false;
+    dgv->ColumnHeadersDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(46, 125, 50);
+    dgv->ColumnHeadersDefaultCellStyle->ForeColor =
+        System::Drawing::Color::White;
+    dgv->ColumnHeadersDefaultCellStyle->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    dgv->DefaultCellStyle->SelectionBackColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    dgv->DefaultCellStyle->SelectionForeColor = System::Drawing::Color::Black;
+    dgv->DefaultCellStyle->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+    dgv->GridColor = System::Drawing::Color::FromArgb(224, 224, 224);
+    dgv->RowTemplate->Height = 32;
+    dgv->AlternatingRowsDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(245, 247, 250);
+    dgv->ColumnHeadersHeight = 36;
+  }
+
   LoadDashboard();
   LoadPending();
   LoadActive();
@@ -17,10 +40,11 @@ void courierForm::LoadDashboard() {
   lblTotalDeliveries->Text = L"Total Pengiriman: " + stats[1];
   lblTotalIncome->Text =
       L"Pendapatan: Rp " + String::Format("{0:N0}", stats[2]);
-  
+
   // Display current balance
   int currentSaldo = DatabaseManager::GetUserSaldo(currentUserID);
-  lblCurrentBalance->Text = L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
+  lblCurrentBalance->Text =
+      L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
 }
 
 void courierForm::LoadPending() {
@@ -55,26 +79,32 @@ System::Void courierForm::btnClaim_Click(System::Object ^ sender,
     return;
   }
 
-  int transID =
-      Convert::ToInt32(dgvPending->SelectedRows[0]->Cells["ID"]->Value);
-
-  if (MessageBox::Show("Apakah Anda yakin ingin mengambil pesanan ini?",
+  int count = dgvPending->SelectedRows->Count;
+  if (MessageBox::Show("Ambil " + count + " pesanan yang dipilih?",
                        "Konfirmasi", MessageBoxButtons::YesNo,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
-    if (DatabaseManager::ClaimDelivery(transID, currentUserID)) {
-      MessageBox::Show(
-          "Pesanan berhasil diambil!\n\nSilakan segera kirim ke customer.",
-          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
-      LoadPending();
-      LoadActive();
-      LoadDashboard();
-    } else {
-      MessageBox::Show(
-          "Gagal mengambil pesanan. Mungkin sudah diambil kurir lain.", "Error",
-          MessageBoxButtons::OK, MessageBoxIcon::Error);
-      LoadPending();
+    int success = 0;
+    int fail = 0;
+    for (int i = 0; i < dgvPending->SelectedRows->Count; i++) {
+      int transID =
+          Convert::ToInt32(dgvPending->SelectedRows[i]->Cells["ID"]->Value);
+      if (DatabaseManager::ClaimDelivery(transID, currentUserID)) {
+        success++;
+      } else {
+        fail++;
+      }
     }
+
+    String ^ msg = "Berhasil mengambil " + success + " pesanan.";
+    if (fail > 0)
+      msg += "\n" + fail + " pesanan gagal (mungkin sudah diambil kurir lain).";
+
+    MessageBox::Show(msg, "Hasil", MessageBoxButtons::OK,
+                     MessageBoxIcon::Information);
+    LoadPending();
+    LoadActive();
+    LoadDashboard();
   }
 }
 
@@ -91,26 +121,34 @@ System::Void courierForm::btnComplete_Click(System::Object ^ sender,
     return;
   }
 
-  int transID =
-      Convert::ToInt32(dgvActive->SelectedRows[0]->Cells["ID"]->Value);
-
-  if (MessageBox::Show("Apakah pengiriman ini sudah selesai?\n\nAnda akan "
-                       "menerima ongkos kirim Rp 10.000",
+  int count = dgvActive->SelectedRows->Count;
+  if (MessageBox::Show("Selesaikan " + count +
+                           " pengiriman?\nAnda akan menerima ongkos kirim.",
                        "Konfirmasi", MessageBoxButtons::YesNo,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
-    if (DatabaseManager::CompleteDelivery(transID, currentUserID)) {
-      MessageBox::Show("Pengiriman selesai!\n\nOnkgos kirim Rp 10.000 telah "
-                       "ditambahkan ke saldo Anda.",
-                       "Sukses", MessageBoxButtons::OK,
-                       MessageBoxIcon::Information);
-      LoadActive();
-      LoadHistory();
-      LoadDashboard();
-    } else {
-      MessageBox::Show("Gagal menyelesaikan pengiriman!", "Error",
-                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    int success = 0;
+    int fail = 0;
+    for (int i = 0; i < dgvActive->SelectedRows->Count; i++) {
+      int transID =
+          Convert::ToInt32(dgvActive->SelectedRows[i]->Cells["ID"]->Value);
+      if (DatabaseManager::CompleteDelivery(transID, currentUserID)) {
+        success++;
+      } else {
+        fail++;
+      }
     }
+
+    String ^ msg = "Berhasil: " + success + " pengiriman selesai.";
+    if (fail > 0)
+      msg += "\n" + fail + " pengiriman gagal.";
+    msg += "\n\nOngkos kirim telah ditambahkan ke saldo Anda.";
+
+    MessageBox::Show(msg, "Hasil", MessageBoxButtons::OK,
+                     MessageBoxIcon::Information);
+    LoadActive();
+    LoadHistory();
+    LoadDashboard();
   }
 }
 
@@ -146,11 +184,11 @@ System::Void courierForm::btnWithdraw_Click(System::Object ^ sender,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
     if (DatabaseManager::WithdrawSaldo(currentUserID, amount)) {
-      MessageBox::Show(
-          "Penarikan berhasil!\\n\\nJumlah: Rp " +
-              String::Format("{0:N0}", amount) +
-              "\\n\\nSaldo akan ditransfer ke rekening Anda.",
-          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      MessageBox::Show("Penarikan berhasil!\\n\\nJumlah: Rp " +
+                           String::Format("{0:N0}", amount) +
+                           "\\n\\nSaldo akan ditransfer ke rekening Anda.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
       LoadDashboard();
       txtWithdrawAmount->Text = "";
     } else {

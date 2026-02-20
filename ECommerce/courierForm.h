@@ -19,7 +19,7 @@ public:
   int currentUserID;
 
 public:
-    String^ currentUsername;
+  String ^ currentUsername;
 
   courierForm(void) {
     InitializeComponent();
@@ -198,7 +198,8 @@ private:
       // 
       this->lblTitle->AutoSize = true;
       this->lblTitle->Font = (gcnew System::Drawing::Font(L"Segoe UI", 18, System::Drawing::FontStyle::Bold));
-      this->lblTitle->ForeColor = System::Drawing::Color::MediumSeaGreen;
+      this->lblTitle->ForeColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)), static_cast<System::Int32>(static_cast<System::Byte>(125)),
+          static_cast<System::Int32>(static_cast<System::Byte>(50)));
       this->lblTitle->Location = System::Drawing::Point(20, 21);
       this->lblTitle->Name = L"lblTitle";
       this->lblTitle->Size = System::Drawing::Size(230, 32);
@@ -229,7 +230,7 @@ private:
       // 
       this->lblTotalIncome->AutoSize = true;
       this->lblTotalIncome->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
-      this->lblTotalIncome->ForeColor = System::Drawing::Color::DarkGreen;
+      this->lblTotalIncome->ForeColor = System::Drawing::Color::MediumSeaGreen;
       this->lblTotalIncome->Location = System::Drawing::Point(21, 162);
       this->lblTotalIncome->Name = L"lblTotalIncome";
       this->lblTotalIncome->Size = System::Drawing::Size(168, 25);
@@ -268,6 +269,8 @@ private:
       // btnWithdraw
       // 
       this->btnWithdraw->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnWithdraw->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnWithdraw->FlatAppearance->BorderSize = 0;
       this->btnWithdraw->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnWithdraw->ForeColor = System::Drawing::Color::White;
       this->btnWithdraw->Location = System::Drawing::Point(26, 283);
@@ -318,7 +321,6 @@ private:
       this->dgvPending->AutoSizeColumnsMode = System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
       this->dgvPending->ColumnHeadersHeightSizeMode = System::Windows::Forms::DataGridViewColumnHeadersHeightSizeMode::AutoSize;
       this->dgvPending->Location = System::Drawing::Point(15, 50);
-      this->dgvPending->MultiSelect = false;
       this->dgvPending->Name = L"dgvPending";
       this->dgvPending->ReadOnly = true;
       this->dgvPending->SelectionMode = System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
@@ -337,9 +339,11 @@ private:
       // 
       // btnClaim
       // 
-      this->btnClaim->BackColor = System::Drawing::Color::White;
-      this->btnClaim->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-          static_cast<System::Byte>(0)));
+      this->btnClaim->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnClaim->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnClaim->FlatAppearance->BorderSize = 0;
+      this->btnClaim->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnClaim->ForeColor = System::Drawing::Color::White;
       this->btnClaim->Location = System::Drawing::Point(125, 406);
       this->btnClaim->Name = L"btnClaim";
       this->btnClaim->Size = System::Drawing::Size(125, 30);
@@ -378,7 +382,6 @@ private:
       this->dgvActive->AutoSizeColumnsMode = System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
       this->dgvActive->ColumnHeadersHeightSizeMode = System::Windows::Forms::DataGridViewColumnHeadersHeightSizeMode::AutoSize;
       this->dgvActive->Location = System::Drawing::Point(15, 50);
-      this->dgvActive->MultiSelect = false;
       this->dgvActive->Name = L"dgvActive";
       this->dgvActive->ReadOnly = true;
       this->dgvActive->SelectionMode = System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
@@ -397,12 +400,14 @@ private:
       // 
       // btnComplete
       // 
-      this->btnComplete->BackColor = System::Drawing::Color::White;
-      this->btnComplete->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 8.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-          static_cast<System::Byte>(0)));
+      this->btnComplete->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnComplete->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnComplete->FlatAppearance->BorderSize = 0;
+      this->btnComplete->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnComplete->ForeColor = System::Drawing::Color::White;
       this->btnComplete->Location = System::Drawing::Point(125, 406);
       this->btnComplete->Name = L"btnComplete";
-      this->btnComplete->Size = System::Drawing::Size(113, 30);
+      this->btnComplete->Size = System::Drawing::Size(125, 30);
       this->btnComplete->TabIndex = 3;
       this->btnComplete->Text = L"Selesai Kirim";
       this->btnComplete->UseVisualStyleBackColor = false;
@@ -454,8 +459,9 @@ private:
       // 
       // btnLogout
       // 
-      this->btnLogout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(220)), static_cast<System::Int32>(static_cast<System::Byte>(53)),
-          static_cast<System::Int32>(static_cast<System::Byte>(69)));
+      this->btnLogout->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(211)), static_cast<System::Int32>(static_cast<System::Byte>(47)),
+          static_cast<System::Int32>(static_cast<System::Byte>(47)));
+      this->btnLogout->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnLogout->FlatAppearance->BorderSize = 0;
       this->btnLogout->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnLogout->ForeColor = System::Drawing::Color::White;
@@ -516,7 +522,8 @@ private:
                                  System::EventArgs ^ e);
   System::Void btnRefreshHistory_Click(System::Object ^ sender,
                                        System::EventArgs ^ e);
-  System::Void btnWithdraw_Click(System::Object ^ sender, System::EventArgs ^ e);
+  System::Void btnWithdraw_Click(System::Object ^ sender,
+                                 System::EventArgs ^ e);
   System::Void btnLogout_Click(System::Object ^ sender, System::EventArgs ^ e);
 };
 } // namespace ECommerce

@@ -5,11 +5,37 @@ namespace ECommerce {
 
 System::Void customerForm::customerForm_Load(System::Object ^ sender,
                                              System::EventArgs ^ e) {
+  // Apply DGV theming
+  array<DataGridView ^> ^ grids = {dgvProducts, dgvCart, dgvHistory};
+  for each (DataGridView ^ dgv in grids) {
+    dgv->BackgroundColor = System::Drawing::Color::White;
+    dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
+    dgv->EnableHeadersVisualStyles = false;
+    dgv->ColumnHeadersDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(46, 125, 50);
+    dgv->ColumnHeadersDefaultCellStyle->ForeColor =
+        System::Drawing::Color::White;
+    dgv->ColumnHeadersDefaultCellStyle->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    dgv->DefaultCellStyle->SelectionBackColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    dgv->DefaultCellStyle->SelectionForeColor = System::Drawing::Color::Black;
+    dgv->DefaultCellStyle->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+    dgv->GridColor = System::Drawing::Color::FromArgb(224, 224, 224);
+    dgv->RowTemplate->Height = 32;
+    dgv->AlternatingRowsDefaultCellStyle->BackColor =
+        System::Drawing::Color::FromArgb(245, 247, 250);
+    dgv->ColumnHeadersHeight = 36;
+  }
+
   LoadSaldo();
   LoadCatalog();
   LoadHistory();
   LoadProfile();
   dgvCart->DataSource = cartTable;
+  // Hide MerchantID column in cart
+  if (dgvCart->Columns["MerchantID"])
+    dgvCart->Columns["MerchantID"]->Visible = false;
 }
 
 System::Void
@@ -128,11 +154,18 @@ System::Void customerForm::btnAddToCart_Click(System::Object ^ sender,
     row["Harga"] = harga;
     row["Jumlah"] = jumlah;
     row["Total"] = harga * jumlah;
+    row["MerchantID"] = Convert::ToInt32(
+        dgvProducts->SelectedRows[0]->Cells["MerchantID"]->Value);
+    row["Toko"] =
+        dgvProducts->SelectedRows[0]->Cells["Toko"]->Value->ToString();
     cartTable->Rows->Add(row);
   }
 
   UpdateCartTotal();
   nudQuantity->Value = 1;
+  // Hide MerchantID column in cart
+  if (dgvCart->Columns["MerchantID"])
+    dgvCart->Columns["MerchantID"]->Visible = false;
 }
 
 System::Void customerForm::btnRemoveFromCart_Click(System::Object ^ sender,
@@ -151,15 +184,19 @@ System::Void customerForm::btnRemoveFromCart_Click(System::Object ^ sender,
 void customerForm::UpdateCartTotal() {
   int subtotal = 0;
   int totalItems = 0;
+  // Count unique merchants for ongkir
+  System::Collections::Generic::List<int> ^ merchantSet =
+      gcnew System::Collections::Generic::List<int>();
   for (int i = 0; i < cartTable->Rows->Count; i++) {
     subtotal += Convert::ToInt32(cartTable->Rows[i]["Total"]);
     totalItems += Convert::ToInt32(cartTable->Rows[i]["Jumlah"]);
+    int mid = Convert::ToInt32(cartTable->Rows[i]["MerchantID"]);
+    if (!merchantSet->Contains(mid))
+      merchantSet->Add(mid);
   }
-  int ongkir = totalItems * 10000;
+  int ongkir = merchantSet->Count * 10000;
   int grandTotal = subtotal + ongkir;
-  lblCartTotal->Text = L"Subtotal: Rp " + String::Format("{0:N0}", subtotal) +
-                       L" | Ongkir: Rp " + String::Format("{0:N0}", ongkir) +
-                       L" | Total: Rp " + String::Format("{0:N0}", grandTotal);
+  lblCartTotal->Text = L"Total: Rp " + String::Format("{0:N0}", grandTotal);
 }
 
 System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
@@ -173,18 +210,24 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
   // Calculate total
   int totalHarga = 0;
   int totalItems = 0;
+  System::Collections::Generic::List<int> ^ merchantSet =
+      gcnew System::Collections::Generic::List<int>();
   for (int i = 0; i < cartTable->Rows->Count; i++) {
     totalHarga += Convert::ToInt32(cartTable->Rows[i]["Total"]);
     totalItems += Convert::ToInt32(cartTable->Rows[i]["Jumlah"]);
+    int mid = Convert::ToInt32(cartTable->Rows[i]["MerchantID"]);
+    if (!merchantSet->Contains(mid))
+      merchantSet->Add(mid);
   }
-  int ongkir = totalItems * 10000;
+  int ongkir = merchantSet->Count * 10000;
   int grandTotal = totalHarga + ongkir;
 
   // Check saldo (harga + ongkir)
   if (currentSaldo < grandTotal) {
     MessageBox::Show(
         "Saldo tidak cukup!\n\nSubtotal: Rp " +
-            String::Format("{0:N0}", totalHarga) + "\nOngkir: Rp " +
+            String::Format("{0:N0}", totalHarga) + "\nOngkir (" +
+            merchantSet->Count + " toko): Rp " +
             String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
             String::Format("{0:N0}", grandTotal) + "\nSaldo Anda: Rp " +
             String::Format("{0:N0}", currentSaldo),
@@ -195,24 +238,34 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
   if (MessageBox::Show("Checkout " + cartTable->Rows->Count.ToString() +
                            " item?\n\nSubtotal: Rp " +
                            String::Format("{0:N0}", totalHarga) + "\nOngkir (" +
-                           totalItems.ToString() + " item x Rp 10.000): Rp " +
+                           merchantSet->Count + " toko x Rp 10.000): Rp " +
                            String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
                            String::Format("{0:N0}", grandTotal),
                        "Konfirmasi Checkout", MessageBoxButtons::YesNo,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
 
+    // Track which merchants have already been charged ongkir
+    System::Collections::Generic::List<int> ^ chargedMerchants =
+        gcnew System::Collections::Generic::List<int>();
+
     bool allSuccess = true;
     for (int i = 0; i < cartTable->Rows->Count; i++) {
       int productID = Convert::ToInt32(cartTable->Rows[i]["ID"]);
       int jumlah = Convert::ToInt32(cartTable->Rows[i]["Jumlah"]);
+      int merchantID = Convert::ToInt32(cartTable->Rows[i]["MerchantID"]);
 
       // Purchase each item (jumlah times for multiple quantities)
       for (int j = 0; j < jumlah; j++) {
-        if (!DatabaseManager::PurchaseProduct(productID, currentUserID)) {
+        // Charge ongkir only on first item of each merchant
+        bool chargeOngkir = !chargedMerchants->Contains(merchantID);
+        if (!DatabaseManager::PurchaseProduct(productID, currentUserID,
+                                              chargeOngkir)) {
           allSuccess = false;
           break;
         }
+        if (chargeOngkir)
+          chargedMerchants->Add(merchantID);
       }
       if (!allSuccess)
         break;
@@ -236,6 +289,41 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }
+}
+
+System::Void customerForm::btnUpdateQuantity_Click(System::Object ^ sender,
+                                                   System::EventArgs ^ e) {
+  if (dgvCart->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih item yang akan diubah jumlahnya!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int rowIndex = dgvCart->SelectedRows[0]->Index;
+  int newJumlah = Convert::ToInt32(nudCartQuantity->Value);
+  int productID = Convert::ToInt32(cartTable->Rows[rowIndex]["ID"]);
+  int harga = Convert::ToInt32(cartTable->Rows[rowIndex]["Harga"]);
+
+  // Check stock availability
+  DataTable ^ products = DatabaseManager::GetAllProductsWithMerchantName();
+  for (int i = 0; i < products->Rows->Count; i++) {
+    if (Convert::ToInt32(products->Rows[i]["ID"]) == productID) {
+      int stok = Convert::ToInt32(products->Rows[i]["Stok"]);
+      if (newJumlah > stok) {
+        MessageBox::Show(
+            "Jumlah melebihi stok! Stok tersedia: " + stok.ToString(),
+            "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+        return;
+      }
+      break;
+    }
+  }
+
+  cartTable->Rows[rowIndex]["Jumlah"] = newJumlah;
+  cartTable->Rows[rowIndex]["Total"] = newJumlah * harga;
+  UpdateCartTotal();
+  MessageBox::Show("Jumlah berhasil diubah!", "Sukses", MessageBoxButtons::OK,
+                   MessageBoxIcon::Information);
 }
 
 System::Void customerForm::btnRefreshHistory_Click(System::Object ^ sender,

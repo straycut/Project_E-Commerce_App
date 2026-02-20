@@ -145,9 +145,10 @@ private:
       // 
       // btnDaftar
       // 
-      this->btnDaftar->BackColor = System::Drawing::Color::Transparent;
-      this->btnDaftar->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(0)),
-          static_cast<System::Int32>(static_cast<System::Byte>(122)), static_cast<System::Int32>(static_cast<System::Byte>(204)));
+      this->btnDaftar->BackColor = System::Drawing::Color::White;
+      this->btnDaftar->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnDaftar->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)),
+          static_cast<System::Int32>(static_cast<System::Byte>(125)), static_cast<System::Int32>(static_cast<System::Byte>(50)));
       this->btnDaftar->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9.75F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
           static_cast<System::Byte>(0)));
       this->btnDaftar->ForeColor = System::Drawing::Color::MediumSeaGreen;
@@ -162,6 +163,7 @@ private:
       // btnMasuk
       // 
       this->btnMasuk->BackColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnMasuk->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnMasuk->FlatAppearance->BorderSize = 0;
       this->btnMasuk->Font = (gcnew System::Drawing::Font(L"Segoe UI", 11, System::Drawing::FontStyle::Bold));
       this->btnMasuk->ForeColor = System::Drawing::Color::White;

@@ -325,7 +325,7 @@ static bool NativeDeleteUser(int userID) {
   if (g_db == nullptr)
     return false;
 
-  const char *sql = "DELETE FROM users WHERE id = ? AND role != 'Admin';";
+  const char *sql = "DELETE FROM users WHERE id = ?;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -920,7 +920,8 @@ static bool NativeUpdateUserAddress(int userID, const std::string &alamat) {
 
 // Purchase product - create transaction and handle money
 // Purchase product - create transaction and handle money
-static bool NativePurchaseProduct(int productID, int customerID) {
+static bool NativePurchaseProduct(int productID, int customerID,
+                                  bool chargeOngkir) {
   if (g_db == nullptr)
     return false;
 
@@ -959,8 +960,8 @@ static bool NativePurchaseProduct(int productID, int customerID) {
     sqlite3_finalize(stmt);
   }
 
-  // Calculate total with shipping fee (ongkir)
-  int ongkir = 10000;
+  // Calculate total with shipping fee (ongkir) - only if chargeOngkir is true
+  int ongkir = chargeOngkir ? 10000 : 0;
   int totalCharge = harga + ongkir;
 
   // Check customer saldo (harga + ongkir)
@@ -1914,8 +1915,9 @@ public:
   }
 
   // Purchase product
-  static bool PurchaseProduct(int productID, int customerID) {
-    return NativePurchaseProduct(productID, customerID);
+  static bool PurchaseProduct(int productID, int customerID,
+                              bool chargeOngkir) {
+    return NativePurchaseProduct(productID, customerID, chargeOngkir);
   }
 
   // Get transactions by customer as DataTable
