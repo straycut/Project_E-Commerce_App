@@ -21,10 +21,15 @@ public:
   static bool ValidateUser(String ^ username, String ^ password,
                            String ^ % outRole, int % outUserID, int % outSaldo);
 
+  // Helper: Format user ID based on role
+  static String ^ FormatUserID(int id, String ^ role);
+
   // Admin functions - User management
   static DataTable ^ GetAllUsersTable();
   static bool SetUserActive(int userID, bool isActive);
   static bool DeleteUser(int userID);
+  static bool UpdateUser(int userID, String ^ newUsername,
+                         String ^ newPassword);
   static String ^ GetUserAddress(int userID);
   static bool UpdateUserAddress(int userID, String ^ alamat);
 

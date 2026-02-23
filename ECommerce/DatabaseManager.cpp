@@ -32,6 +32,7 @@ struct ProductData {
   int stok;
   int merchantID;
   std::string merchantName;
+  std::string merchantAlamat;
 };
 
 struct TransactionData {
@@ -340,6 +341,41 @@ static bool NativeDeleteUser(int userID) {
   return rc == SQLITE_DONE;
 }
 
+// Update user (username and optionally password)
+static bool NativeUpdateUser(int userID, const std::string &newUsername,
+                             const std::string &newPassword) {
+  if (g_db == nullptr)
+    return false;
+
+  sqlite3_stmt *stmt;
+  int rc;
+
+  if (newPassword.empty()) {
+    // Update username only
+    const char *sql = "UPDATE users SET username = ? WHERE id = ?;";
+    rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+      return false;
+    sqlite3_bind_text(stmt, 1, newUsername.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, userID);
+  } else {
+    // Update both username and password
+    const char *sql =
+        "UPDATE users SET username = ?, password = ? WHERE id = ?;";
+    rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+      return false;
+    sqlite3_bind_text(stmt, 1, newUsername.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, newPassword.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 3, userID);
+  }
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE;
+}
+
 // Get all income with username
 static std::vector<IncomeData> NativeGetAllIncome() {
   std::vector<IncomeData> incomes;
@@ -390,10 +426,13 @@ static std::vector<TransactionData> NativeGetAllTransactions() {
       "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, 0), "
       "t.status, "
       "COALESCE(t.created_at, ''), "
-      "COALESCE(u_cust.username, ''), COALESCE(u_courier.username, '') "
+      "COALESCE(u_cust.username, ''), COALESCE(u_courier.username, ''), "
+      "COALESCE(u_merch.alamat, ''), COALESCE(u_cust.alamat, '') "
       "FROM transactions t "
       "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
+      "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
       "ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
@@ -417,6 +456,12 @@ static std::vector<TransactionData> NativeGetAllTransactions() {
     const char *courierName =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.courierName = courierName ? courierName : "";
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
+    trans.merchantAddress = merchAddr ? merchAddr : "";
+    const char *custAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    trans.customerAddress = custAddr ? custAddr : "";
     transactions.push_back(trans);
   }
 
@@ -796,7 +841,8 @@ static std::vector<ProductData> NativeGetAllProductsWithMerchantName() {
 
   const char *sql = "SELECT p.id, p.nama, p.harga, p.komisi, p.stok, "
                     "p.merchant_id, u.username, "
-                    "COALESCE(p.kategori, ''), COALESCE(p.deskripsi, '') "
+                    "COALESCE(p.kategori, ''), COALESCE(p.deskripsi, ''), "
+                    "COALESCE(u.alamat, '') "
                     "FROM products p "
                     "LEFT JOIN users u ON p.merchant_id = u.id "
                     "ORDER BY p.id DESC;";
@@ -825,6 +871,9 @@ static std::vector<ProductData> NativeGetAllProductsWithMerchantName() {
     const char *desk =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
     product.deskripsi = desk ? desk : "";
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    product.merchantAlamat = merchAddr ? merchAddr : "";
     products.push_back(product);
   }
 
@@ -949,13 +998,14 @@ static bool NativePurchaseProduct(int productID, int customerID,
   if (stok <= 0)
     return false;
 
-  // Get Admin ID (assume first admin found)
-  int adminID = 0;
+  // Get all active Admin IDs
+  std::vector<int> adminIDs;
   const char *sqlAdmin =
-      "SELECT id FROM users WHERE role = 'Admin' ORDER BY id ASC LIMIT 1;";
+      "SELECT id FROM users WHERE role = 'Admin' AND COALESCE(is_active, 1) = "
+      "1 ORDER BY id ASC;";
   if (sqlite3_prepare_v2(g_db, sqlAdmin, -1, &stmt, nullptr) == SQLITE_OK) {
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-      adminID = sqlite3_column_int(stmt, 0);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      adminIDs.push_back(sqlite3_column_int(stmt, 0));
     }
     sqlite3_finalize(stmt);
   }
@@ -1005,12 +1055,21 @@ static bool NativePurchaseProduct(int productID, int customerID,
     return false;
   }
 
-  // Update admin saldo (if admin exists)
-  if (adminID > 0 && appCommission > 0) {
-    int adminSaldo = NativeGetUserSaldo(adminID);
-    if (!NativeUpdateUserSaldo(adminID, adminSaldo + appCommission)) {
-      ExecuteSQL("ROLLBACK;");
-      return false;
+  // Distribute commission equally to all active admins
+  if (!adminIDs.empty() && appCommission > 0) {
+    int adminCount = (int)adminIDs.size();
+    int perAdmin = appCommission / adminCount;
+    int remainder = appCommission % adminCount;
+
+    for (int i = 0; i < adminCount; i++) {
+      int share = perAdmin + (i == 0 ? remainder : 0);
+      if (share <= 0)
+        continue;
+      int adminSaldo = NativeGetUserSaldo(adminIDs[i]);
+      if (!NativeUpdateUserSaldo(adminIDs[i], adminSaldo + share)) {
+        ExecuteSQL("ROLLBACK;");
+        return false;
+      }
     }
   }
 
@@ -1047,19 +1106,28 @@ static bool NativePurchaseProduct(int productID, int customerID,
     sqlite3_finalize(stmt);
   }
 
-  // Add income record for Admin
-  if (adminID > 0 && appCommission > 0) {
-    const char *sqlIncomeAdmin =
-        "INSERT INTO income (user_id, transaction_id, amount, type, "
-        "description) "
-        "VALUES (?, ?, ?, 'commission', 'Komisi aplikasi');";
-    if (sqlite3_prepare_v2(g_db, sqlIncomeAdmin, -1, &stmt, nullptr) ==
-        SQLITE_OK) {
-      sqlite3_bind_int(stmt, 1, adminID);
-      sqlite3_bind_int(stmt, 2, transID);
-      sqlite3_bind_int(stmt, 3, appCommission);
-      sqlite3_step(stmt);
-      sqlite3_finalize(stmt);
+  // Add income records for each active admin
+  if (!adminIDs.empty() && appCommission > 0) {
+    int adminCount = (int)adminIDs.size();
+    int perAdmin = appCommission / adminCount;
+    int remainder = appCommission % adminCount;
+
+    for (int i = 0; i < adminCount; i++) {
+      int share = perAdmin + (i == 0 ? remainder : 0);
+      if (share <= 0)
+        continue;
+      const char *sqlIncomeAdmin =
+          "INSERT INTO income (user_id, transaction_id, amount, type, "
+          "description) "
+          "VALUES (?, ?, ?, 'commission', 'Komisi aplikasi');";
+      if (sqlite3_prepare_v2(g_db, sqlIncomeAdmin, -1, &stmt, nullptr) ==
+          SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, adminIDs[i]);
+        sqlite3_bind_int(stmt, 2, transID);
+        sqlite3_bind_int(stmt, 3, share);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+      }
     }
   }
 
@@ -1078,10 +1146,13 @@ NativeGetTransactionsByCustomer(int customerID) {
       "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, "
       "0), t.status, COALESCE(t.created_at, ''), "
       "COALESCE(u_courier.username, ''), COALESCE(p.harga, 0), "
-      "COALESCE(p.nama, '') "
+      "COALESCE(p.nama, ''), "
+      "COALESCE(u_merch.alamat, ''), COALESCE(u_cust.alamat, '') "
       "FROM transactions t "
       "LEFT JOIN users u_courier ON t.courier_id = u_courier.id "
       "LEFT JOIN products p ON t.product_id = p.id "
+      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "WHERE t.customer_id = ? ORDER BY t.id DESC;";
   sqlite3_stmt *stmt;
 
@@ -1109,6 +1180,12 @@ NativeGetTransactionsByCustomer(int customerID) {
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
     trans.customerName =
         productName ? productName : ""; // Reusing field for product name
+    const char *merchAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    trans.merchantAddress = merchAddr ? merchAddr : "";
+    const char *custAddr =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 10));
+    trans.customerAddress = custAddr ? custAddr : "";
     transactions.push_back(trans);
   }
 
@@ -1597,11 +1674,26 @@ public:
                         isActive);
   }
 
+  // Helper: Format user ID based on role
+  static String ^ FormatUserID(int id, String ^ role) {
+    if (role == "Admin")
+      return "USRA" + id;
+    if (role == "Merchant")
+      return "USRM" + id;
+    if (role == "Customer")
+      return "USRC" + id;
+    if (role == "Courier")
+      return "USRK" + id;
+    return "USR" + id;
+  }
+
   // Get all users as DataTable for DataGridView
   static DataTable ^ GetAllUsersTable() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Username", String::typeid);
+    dt->Columns->Add("_Password", String::typeid);
     dt->Columns->Add("Role", String::typeid);
     dt->Columns->Add("Saldo", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
@@ -1610,9 +1702,12 @@ public:
     std::vector<UserData> users = NativeGetAllUsers();
     for (const auto &user : users) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = user.id;
+      row["_RawID"] = user.id;
+      String ^ role = gcnew String(user.role.c_str());
+      row["ID"] = FormatUserID(user.id, role);
       row["Username"] = gcnew String(user.username.c_str());
-      row["Role"] = gcnew String(user.role.c_str());
+      row["_Password"] = gcnew String(user.password.c_str());
+      row["Role"] = role;
       row["Saldo"] = user.saldo;
       row["Status"] = user.isActive ? "Active" : "Inactive";
       row["Alamat"] = gcnew String(user.alamat.c_str());
@@ -1630,6 +1725,17 @@ public:
   // Delete user
   static bool DeleteUser(int userID) { return NativeDeleteUser(userID); }
 
+  // Update user (username and optionally password)
+  static bool UpdateUser(int userID, String ^ newUsername,
+                         String ^ newPassword) {
+    std::string uname = msclr::interop::marshal_as<std::string>(newUsername);
+    std::string pass =
+        (newPassword != nullptr && newPassword->Length > 0)
+            ? msclr::interop::marshal_as<std::string>(newPassword)
+            : "";
+    return NativeUpdateUser(userID, uname, pass);
+  }
+
   // Get user address
   static String ^ GetUserAddress(int userID) {
     std::string addr = NativeGetUserAddress(userID);
@@ -1645,7 +1751,8 @@ public:
   // Get all income as DataTable
   static DataTable ^ GetAllIncomeTable() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Username", String::typeid);
     dt->Columns->Add("Amount", Int32::typeid);
     dt->Columns->Add("Type", String::typeid);
@@ -1655,7 +1762,8 @@ public:
     std::vector<IncomeData> incomes = NativeGetAllIncome();
     for (const auto &income : incomes) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = income.id;
+      row["_RawID"] = income.id;
+      row["ID"] = "INC" + income.id;
       row["Username"] = gcnew String(income.username.c_str());
       row["Amount"] = income.amount;
       row["Type"] = gcnew String(income.type.c_str());
@@ -1670,22 +1778,28 @@ public:
   // Get all transactions as DataTable
   static DataTable ^ GetAllTransactionsTable() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Kurir", String::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
+    dt->Columns->Add("Lokasi Toko", String::typeid);
+    dt->Columns->Add("Lokasi Pembeli", String::typeid);
 
     std::vector<TransactionData> transactions = NativeGetAllTransactions();
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Kurir"] = gcnew String(trans.courierName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
+      row["Lokasi Toko"] = gcnew String(trans.merchantAddress.c_str());
+      row["Lokasi Pembeli"] = gcnew String(trans.customerAddress.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1750,7 +1864,8 @@ public:
       static DataTable
       ^ GetProductsByMerchant(int merchantID) {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Nama", String::typeid);
     dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Komisi", Int32::typeid);
@@ -1761,7 +1876,8 @@ public:
     std::vector<ProductData> products = NativeGetProductsByMerchant(merchantID);
     for (const auto &product : products) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = product.id;
+      row["_RawID"] = product.id;
+      row["ID"] = "PRD" + product.id;
       row["Nama"] = gcnew String(product.nama.c_str());
       row["Harga"] = product.harga;
       row["Komisi"] = product.komisi;
@@ -1803,7 +1919,8 @@ public:
   // Get transactions by merchant as DataTable
   static DataTable ^ GetTransactionsByMerchant(int merchantID) {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Kurir", String::typeid);
@@ -1814,7 +1931,8 @@ public:
         NativeGetTransactionsByMerchant(merchantID);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Kurir"] = gcnew String(trans.courierName.c_str());
@@ -1837,11 +1955,12 @@ public:
         return result;
       }
 
-      // Get all products as DataTable (for customer catalog)
+      // Get all products as DataTable (for admin)
       static DataTable
       ^ GetAllProductsTable() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Nama", String::typeid);
     dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Komisi", Int32::typeid);
@@ -1853,7 +1972,8 @@ public:
     std::vector<ProductData> products = NativeGetAllProducts();
     for (const auto &product : products) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = product.id;
+      row["_RawID"] = product.id;
+      row["ID"] = "PRD" + product.id;
       row["Nama"] = gcnew String(product.nama.c_str());
       row["Harga"] = product.harga;
       row["Komisi"] = product.komisi;
@@ -1870,11 +1990,13 @@ public:
   // Get all products with merchant name as DataTable (for customer catalog)
   static DataTable ^ GetAllProductsWithMerchantName() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Nama", String::typeid);
     dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Stok", Int32::typeid);
     dt->Columns->Add("Toko", String::typeid);
+    dt->Columns->Add("Lokasi Toko", String::typeid);
     dt->Columns->Add("MerchantID", Int32::typeid);
     dt->Columns->Add("Komisi", Int32::typeid);
     dt->Columns->Add("Kategori", String::typeid);
@@ -1883,11 +2005,13 @@ public:
     std::vector<ProductData> products = NativeGetAllProductsWithMerchantName();
     for (const auto &product : products) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = product.id;
+      row["_RawID"] = product.id;
+      row["ID"] = "PRD" + product.id;
       row["Nama"] = gcnew String(product.nama.c_str());
       row["Harga"] = product.harga;
       row["Stok"] = product.stok;
       row["Toko"] = gcnew String(product.merchantName.c_str());
+      row["Lokasi Toko"] = gcnew String(product.merchantAlamat.c_str());
       row["MerchantID"] = product.merchantID;
       row["Komisi"] = product.komisi;
       row["Kategori"] = gcnew String(product.kategori.c_str());
@@ -1923,23 +2047,29 @@ public:
   // Get transactions by customer as DataTable
   static DataTable ^ GetTransactionsByCustomer(int customerID) {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Produk", String::typeid);
     dt->Columns->Add("Total", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Kurir", String::typeid);
     dt->Columns->Add("Tanggal", String::typeid);
+    dt->Columns->Add("Lokasi Toko", String::typeid);
+    dt->Columns->Add("Lokasi Pembeli", String::typeid);
 
     std::vector<TransactionData> transactions =
         NativeGetTransactionsByCustomer(customerID);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["Produk"] = gcnew String(trans.customerName.c_str()); // Product name
       row["Total"] = trans.totalPrice;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Kurir"] = gcnew String(trans.courierName.c_str());
       row["Tanggal"] = gcnew String(trans.createdAt.c_str());
+      row["Lokasi Toko"] = gcnew String(trans.merchantAddress.c_str());
+      row["Lokasi Pembeli"] = gcnew String(trans.customerAddress.c_str());
       dt->Rows->Add(row);
     }
 
@@ -1966,7 +2096,8 @@ public:
   // Get pending deliveries as DataTable
   static DataTable ^ GetPendingDeliveries() {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
@@ -1977,7 +2108,8 @@ public:
     std::vector<TransactionData> transactions = NativeGetPendingDeliveries();
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
@@ -1993,7 +2125,8 @@ public:
   // Get active deliveries by courier as DataTable
   static DataTable ^ GetActiveDeliveries(int courierID) {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
@@ -2005,7 +2138,8 @@ public:
         NativeGetActiveDeliveries(courierID);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());
@@ -2021,7 +2155,8 @@ public:
   // Get delivery history by courier as DataTable
   static DataTable ^ GetDeliveryHistory(int courierID) {
     DataTable ^ dt = gcnew DataTable();
-    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
     dt->Columns->Add("Status", String::typeid);
@@ -2033,7 +2168,8 @@ public:
         NativeGetDeliveryHistory(courierID);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
-      row["ID"] = trans.transID;
+      row["_RawID"] = trans.transID;
+      row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
       row["Status"] = gcnew String(trans.status.c_str());

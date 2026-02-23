@@ -24,6 +24,7 @@ public:
   adminForm(void) {
     InitializeComponent();
     currentUserID = 0;
+    editingUserID = -1;
   }
 
 protected:
@@ -35,6 +36,7 @@ protected:
 
 private:
   int currentUserID;
+  int editingUserID; // -1 = add mode, >0 = edit mode
 
   // UI Controls
 private:
@@ -113,6 +115,9 @@ private:
   System::Windows::Forms::Button ^ btnDeleteUser;
 
 private:
+  System::Windows::Forms::Button ^ btnEditUser;
+
+private:
   System::Windows::Forms::Label ^ lblUserManagement;
 
 private:
@@ -157,6 +162,9 @@ private:
 private:
   System::Windows::Forms::Button ^ btnCancelAddUser;
 
+private:
+  System::Windows::Forms::Label ^ lblPanelTitle;
+
   // Income controls
 private:
   System::Windows::Forms::Label ^ lblAdminWithdrawLabel;
@@ -178,6 +186,18 @@ private:
 
 private:
   System::Windows::Forms::Label ^ lblTotalIncomeValue;
+
+private:
+  System::Windows::Forms::Label ^ lblSearchIncome;
+
+private:
+  System::Windows::Forms::TextBox ^ txtSearchIncome;
+
+private:
+  System::Windows::Forms::Label ^ lblFilterType;
+
+private:
+  System::Windows::Forms::ComboBox ^ cmbFilterType;
 
   // Transaction controls
 private:
@@ -201,6 +221,12 @@ private:
 private:
   System::Windows::Forms::ComboBox ^ cmbFilterStatus;
 
+private:
+  System::Windows::Forms::Label ^ lblSearchTransaction;
+
+private:
+  System::Windows::Forms::TextBox ^ txtSearchTransaction;
+
   // Products controls
 private:
   System::Windows::Forms::TabPage ^ tabProducts;
@@ -219,6 +245,12 @@ private:
 
 private:
   System::Windows::Forms::Label ^ lblProductsTitle;
+
+private:
+  System::Windows::Forms::Label ^ lblSearchProduct;
+
+private:
+  System::Windows::Forms::TextBox ^ txtSearchProduct;
 
 private:
   System::Windows::Forms::Panel ^ panelEditProduct;
@@ -307,12 +339,14 @@ private:
       this->btnActivateUser = (gcnew System::Windows::Forms::Button());
       this->btnDeactivateUser = (gcnew System::Windows::Forms::Button());
       this->btnDeleteUser = (gcnew System::Windows::Forms::Button());
+      this->btnEditUser = (gcnew System::Windows::Forms::Button());
       this->lblSearch = (gcnew System::Windows::Forms::Label());
       this->txtSearchUser = (gcnew System::Windows::Forms::TextBox());
       this->lblFilterRole = (gcnew System::Windows::Forms::Label());
       this->cmbFilterRole = (gcnew System::Windows::Forms::ComboBox());
       this->btnAddUser = (gcnew System::Windows::Forms::Button());
       this->panelAddUser = (gcnew System::Windows::Forms::Panel());
+      this->lblPanelTitle = (gcnew System::Windows::Forms::Label());
       this->lblNewUsername = (gcnew System::Windows::Forms::Label());
       this->txtNewUsername = (gcnew System::Windows::Forms::TextBox());
       this->lblNewPassword = (gcnew System::Windows::Forms::Label());
@@ -324,6 +358,10 @@ private:
       this->tabIncome = (gcnew System::Windows::Forms::TabPage());
       this->lblIncomeTitle = (gcnew System::Windows::Forms::Label());
       this->lblTotalIncomeValue = (gcnew System::Windows::Forms::Label());
+      this->lblSearchIncome = (gcnew System::Windows::Forms::Label());
+      this->txtSearchIncome = (gcnew System::Windows::Forms::TextBox());
+      this->lblFilterType = (gcnew System::Windows::Forms::Label());
+      this->cmbFilterType = (gcnew System::Windows::Forms::ComboBox());
       this->dgvIncome = (gcnew System::Windows::Forms::DataGridView());
       this->btnRefreshIncome = (gcnew System::Windows::Forms::Button());
       this->tabTransactions = (gcnew System::Windows::Forms::TabPage());
@@ -334,6 +372,8 @@ private:
       this->cmbFilterStatus = (gcnew System::Windows::Forms::ComboBox());
       this->btnEditTransactionStatus = (gcnew System::Windows::Forms::Button());
       this->btnDeleteTransaction = (gcnew System::Windows::Forms::Button());
+      this->lblSearchTransaction = (gcnew System::Windows::Forms::Label());
+      this->txtSearchTransaction = (gcnew System::Windows::Forms::TextBox());
       this->tabProducts = (gcnew System::Windows::Forms::TabPage());
       this->lblProductsTitle = (gcnew System::Windows::Forms::Label());
       this->dgvProducts = (gcnew System::Windows::Forms::DataGridView());
@@ -353,6 +393,8 @@ private:
       this->txtEditProductDeskripsi = (gcnew System::Windows::Forms::TextBox());
       this->btnSaveProduct = (gcnew System::Windows::Forms::Button());
       this->btnCancelEditProduct = (gcnew System::Windows::Forms::Button());
+      this->lblSearchProduct = (gcnew System::Windows::Forms::Label());
+      this->txtSearchProduct = (gcnew System::Windows::Forms::TextBox());
       this->panelStats = (gcnew System::Windows::Forms::Panel());
       this->btnLogout = (gcnew System::Windows::Forms::Button());
       this->contextMenuStrip1 = (gcnew System::Windows::Forms::ContextMenuStrip(this->components));
@@ -617,6 +659,7 @@ private:
       this->tabUsers->Controls->Add(this->btnActivateUser);
       this->tabUsers->Controls->Add(this->btnDeactivateUser);
       this->tabUsers->Controls->Add(this->btnDeleteUser);
+      this->tabUsers->Controls->Add(this->btnEditUser);
       this->tabUsers->Controls->Add(this->lblSearch);
       this->tabUsers->Controls->Add(this->txtSearchUser);
       this->tabUsers->Controls->Add(this->lblFilterRole);
@@ -647,12 +690,12 @@ private:
       this->dgvUsers->AllowUserToDeleteRows = false;
       this->dgvUsers->AutoSizeColumnsMode = System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
       this->dgvUsers->ColumnHeadersHeightSizeMode = System::Windows::Forms::DataGridViewColumnHeadersHeightSizeMode::AutoSize;
-      this->dgvUsers->Location = System::Drawing::Point(15, 75);
+      this->dgvUsers->Location = System::Drawing::Point(15, 74);
       this->dgvUsers->MultiSelect = false;
       this->dgvUsers->Name = L"dgvUsers";
       this->dgvUsers->ReadOnly = true;
       this->dgvUsers->SelectionMode = System::Windows::Forms::DataGridViewSelectionMode::FullRowSelect;
-      this->dgvUsers->Size = System::Drawing::Size(820, 315);
+      this->dgvUsers->Size = System::Drawing::Size(820, 316);
       this->dgvUsers->TabIndex = 0;
       // 
       // btnRefreshUsers
@@ -675,7 +718,7 @@ private:
       this->btnActivateUser->Name = L"btnActivateUser";
       this->btnActivateUser->Size = System::Drawing::Size(120, 30);
       this->btnActivateUser->TabIndex = 2;
-      this->btnActivateUser->Text = L"User Aktif";
+      this->btnActivateUser->Text = L"Aktifkan User";
       this->btnActivateUser->UseVisualStyleBackColor = false;
       this->btnActivateUser->Click += gcnew System::EventHandler(this, &adminForm::btnActivateUser_Click);
       // 
@@ -710,6 +753,22 @@ private:
       this->btnDeleteUser->Text = L"Hapus User";
       this->btnDeleteUser->UseVisualStyleBackColor = false;
       this->btnDeleteUser->Click += gcnew System::EventHandler(this, &adminForm::btnDeleteUser_Click);
+      // 
+      // btnEditUser
+      // 
+      this->btnEditUser->BackColor = System::Drawing::Color::White;
+      this->btnEditUser->Cursor = System::Windows::Forms::Cursors::Hand;
+      this->btnEditUser->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)),
+          static_cast<System::Int32>(static_cast<System::Byte>(125)), static_cast<System::Int32>(static_cast<System::Byte>(50)));
+      this->btnEditUser->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
+      this->btnEditUser->ForeColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnEditUser->Location = System::Drawing::Point(500, 408);
+      this->btnEditUser->Name = L"btnEditUser";
+      this->btnEditUser->Size = System::Drawing::Size(100, 30);
+      this->btnEditUser->TabIndex = 14;
+      this->btnEditUser->Text = L"Edit User";
+      this->btnEditUser->UseVisualStyleBackColor = false;
+      this->btnEditUser->Click += gcnew System::EventHandler(this, &adminForm::btnEditUser_Click);
       // 
       // lblSearch
       // 
@@ -757,7 +816,7 @@ private:
       this->btnAddUser->FlatAppearance->BorderSize = 0;
       this->btnAddUser->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnAddUser->ForeColor = System::Drawing::Color::White;
-      this->btnAddUser->Location = System::Drawing::Point(505, 408);
+      this->btnAddUser->Location = System::Drawing::Point(610, 408);
       this->btnAddUser->Name = L"btnAddUser";
       this->btnAddUser->Size = System::Drawing::Size(120, 30);
       this->btnAddUser->TabIndex = 5;
@@ -770,6 +829,7 @@ private:
       this->panelAddUser->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(245)), static_cast<System::Int32>(static_cast<System::Byte>(250)),
           static_cast<System::Int32>(static_cast<System::Byte>(245)));
       this->panelAddUser->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+      this->panelAddUser->Controls->Add(this->lblPanelTitle);
       this->panelAddUser->Controls->Add(this->lblNewUsername);
       this->panelAddUser->Controls->Add(this->txtNewUsername);
       this->panelAddUser->Controls->Add(this->lblNewPassword);
@@ -778,51 +838,64 @@ private:
       this->panelAddUser->Controls->Add(this->cmbNewRole);
       this->panelAddUser->Controls->Add(this->btnSaveUser);
       this->panelAddUser->Controls->Add(this->btnCancelAddUser);
-      this->panelAddUser->Location = System::Drawing::Point(15, 50);
+      this->panelAddUser->Font = (gcnew System::Drawing::Font(L"Segoe UI", 8.25F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+          static_cast<System::Byte>(0)));
+      this->panelAddUser->Location = System::Drawing::Point(584, 34);
       this->panelAddUser->Name = L"panelAddUser";
-      this->panelAddUser->Size = System::Drawing::Size(200, 250);
+      this->panelAddUser->Size = System::Drawing::Size(205, 269);
       this->panelAddUser->TabIndex = 9;
       this->panelAddUser->Visible = false;
+      this->panelAddUser->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &adminForm::panelAddUser_Paint);
+      // 
+      // lblPanelTitle
+      // 
+      this->lblPanelTitle->AutoSize = true;
+      this->lblPanelTitle->Font = (gcnew System::Drawing::Font(L"Segoe UI", 10, System::Drawing::FontStyle::Bold));
+      this->lblPanelTitle->Location = System::Drawing::Point(11, 12);
+      this->lblPanelTitle->Name = L"lblPanelTitle";
+      this->lblPanelTitle->Size = System::Drawing::Size(96, 19);
+      this->lblPanelTitle->TabIndex = 10;
+      this->lblPanelTitle->Text = L"Tambah User";
       // 
       // lblNewUsername
       // 
       this->lblNewUsername->AutoSize = true;
-      this->lblNewUsername->Location = System::Drawing::Point(15, 15);
+      this->lblNewUsername->Location = System::Drawing::Point(12, 55);
       this->lblNewUsername->Name = L"lblNewUsername";
-      this->lblNewUsername->Size = System::Drawing::Size(58, 13);
+      this->lblNewUsername->Size = System::Drawing::Size(61, 13);
       this->lblNewUsername->TabIndex = 0;
       this->lblNewUsername->Text = L"Username:";
       // 
       // txtNewUsername
       // 
-      this->txtNewUsername->Location = System::Drawing::Point(15, 35);
+      this->txtNewUsername->Location = System::Drawing::Point(12, 73);
       this->txtNewUsername->Name = L"txtNewUsername";
-      this->txtNewUsername->Size = System::Drawing::Size(160, 20);
+      this->txtNewUsername->Size = System::Drawing::Size(175, 22);
       this->txtNewUsername->TabIndex = 1;
       // 
       // lblNewPassword
       // 
       this->lblNewPassword->AutoSize = true;
-      this->lblNewPassword->Location = System::Drawing::Point(15, 70);
+      this->lblNewPassword->Location = System::Drawing::Point(12, 108);
       this->lblNewPassword->Name = L"lblNewPassword";
-      this->lblNewPassword->Size = System::Drawing::Size(56, 13);
+      this->lblNewPassword->Size = System::Drawing::Size(59, 13);
       this->lblNewPassword->TabIndex = 2;
       this->lblNewPassword->Text = L"Password:";
       // 
       // txtNewPassword
       // 
-      this->txtNewPassword->Location = System::Drawing::Point(15, 90);
+      this->txtNewPassword->Location = System::Drawing::Point(12, 126);
       this->txtNewPassword->Name = L"txtNewPassword";
       this->txtNewPassword->PasswordChar = '*';
-      this->txtNewPassword->Size = System::Drawing::Size(160, 20);
+      this->txtNewPassword->Size = System::Drawing::Size(175, 22);
       this->txtNewPassword->TabIndex = 3;
       // 
       // lblNewRole
       // 
       this->lblNewRole->AutoSize = true;
-      this->lblNewRole->Location = System::Drawing::Point(15, 125);
+      this->lblNewRole->Location = System::Drawing::Point(12, 162);
       this->lblNewRole->Name = L"lblNewRole";
-      this->lblNewRole->Size = System::Drawing::Size(32, 13);
+      this->lblNewRole->Size = System::Drawing::Size(33, 13);
       this->lblNewRole->TabIndex = 4;
       this->lblNewRole->Text = L"Role:";
       // 
@@ -830,23 +903,21 @@ private:
       // 
       this->cmbNewRole->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
       this->cmbNewRole->Items->AddRange(gcnew cli::array< System::Object^  >(4) { L"Admin", L"Merchant", L"Customer", L"Courier" });
-      this->cmbNewRole->Location = System::Drawing::Point(15, 145);
+      this->cmbNewRole->Location = System::Drawing::Point(12, 180);
       this->cmbNewRole->Name = L"cmbNewRole";
-      this->cmbNewRole->Size = System::Drawing::Size(160, 21);
+      this->cmbNewRole->Size = System::Drawing::Size(175, 21);
       this->cmbNewRole->TabIndex = 5;
       // 
       // btnSaveUser
       // 
-      this->btnSaveUser->BackColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)), static_cast<System::Int32>(static_cast<System::Byte>(125)),
-          static_cast<System::Int32>(static_cast<System::Byte>(50)));
+      this->btnSaveUser->BackColor = System::Drawing::Color::MediumSeaGreen;
       this->btnSaveUser->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnSaveUser->FlatAppearance->BorderSize = 0;
-      this->btnSaveUser->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnSaveUser->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
       this->btnSaveUser->ForeColor = System::Drawing::Color::White;
-      this->btnSaveUser->Location = System::Drawing::Point(15, 190);
+      this->btnSaveUser->Location = System::Drawing::Point(12, 220);
       this->btnSaveUser->Name = L"btnSaveUser";
-      this->btnSaveUser->Size = System::Drawing::Size(75, 30);
+      this->btnSaveUser->Size = System::Drawing::Size(85, 30);
       this->btnSaveUser->TabIndex = 6;
       this->btnSaveUser->Text = L"Simpan";
       this->btnSaveUser->UseVisualStyleBackColor = false;
@@ -858,13 +929,11 @@ private:
       this->btnCancelAddUser->Cursor = System::Windows::Forms::Cursors::Hand;
       this->btnCancelAddUser->FlatAppearance->BorderColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)),
           static_cast<System::Int32>(static_cast<System::Byte>(125)), static_cast<System::Int32>(static_cast<System::Byte>(50)));
-      this->btnCancelAddUser->FlatStyle = System::Windows::Forms::FlatStyle::Flat;
       this->btnCancelAddUser->Font = (gcnew System::Drawing::Font(L"Segoe UI", 9, System::Drawing::FontStyle::Bold));
-      this->btnCancelAddUser->ForeColor = System::Drawing::Color::FromArgb(static_cast<System::Int32>(static_cast<System::Byte>(46)), static_cast<System::Int32>(static_cast<System::Byte>(125)),
-          static_cast<System::Int32>(static_cast<System::Byte>(50)));
-      this->btnCancelAddUser->Location = System::Drawing::Point(100, 190);
+      this->btnCancelAddUser->ForeColor = System::Drawing::Color::MediumSeaGreen;
+      this->btnCancelAddUser->Location = System::Drawing::Point(102, 220);
       this->btnCancelAddUser->Name = L"btnCancelAddUser";
-      this->btnCancelAddUser->Size = System::Drawing::Size(75, 30);
+      this->btnCancelAddUser->Size = System::Drawing::Size(85, 30);
       this->btnCancelAddUser->TabIndex = 7;
       this->btnCancelAddUser->Text = L"Batal";
       this->btnCancelAddUser->UseVisualStyleBackColor = false;
@@ -874,6 +943,10 @@ private:
       // 
       this->tabIncome->Controls->Add(this->lblIncomeTitle);
       this->tabIncome->Controls->Add(this->lblTotalIncomeValue);
+      this->tabIncome->Controls->Add(this->lblSearchIncome);
+      this->tabIncome->Controls->Add(this->txtSearchIncome);
+      this->tabIncome->Controls->Add(this->lblFilterType);
+      this->tabIncome->Controls->Add(this->cmbFilterType);
       this->tabIncome->Controls->Add(this->dgvIncome);
       this->tabIncome->Controls->Add(this->btnRefreshIncome);
       this->tabIncome->Location = System::Drawing::Point(4, 22);
@@ -906,22 +979,61 @@ private:
       this->lblTotalIncomeValue->TabIndex = 1;
       this->lblTotalIncomeValue->Text = L"Total: Rp 0";
       // 
+      // lblSearchIncome
+      // 
+      this->lblSearchIncome->AutoSize = true;
+      this->lblSearchIncome->Location = System::Drawing::Point(15, 58);
+      this->lblSearchIncome->Name = L"lblSearchIncome";
+      this->lblSearchIncome->Size = System::Drawing::Size(44, 13);
+      this->lblSearchIncome->TabIndex = 3;
+      this->lblSearchIncome->Text = L"Search:";
+      // 
+      // txtSearchIncome
+      // 
+      this->txtSearchIncome->Location = System::Drawing::Point(65, 55);
+      this->txtSearchIncome->Name = L"txtSearchIncome";
+      this->txtSearchIncome->Size = System::Drawing::Size(180, 20);
+      this->txtSearchIncome->TabIndex = 4;
+      this->txtSearchIncome->TextChanged += gcnew System::EventHandler(this, &adminForm::txtSearchIncome_TextChanged);
+      // 
+      // lblFilterType
+      // 
+      this->lblFilterType->AutoSize = true;
+      this->lblFilterType->Location = System::Drawing::Point(265, 58);
+      this->lblFilterType->Name = L"lblFilterType";
+      this->lblFilterType->Size = System::Drawing::Size(31, 13);
+      this->lblFilterType->TabIndex = 5;
+      this->lblFilterType->Text = L"Tipe:";
+      // 
+      // cmbFilterType
+      // 
+      this->cmbFilterType->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+      this->cmbFilterType->Items->AddRange(gcnew cli::array< System::Object^  >(5) {
+          L"Semua", L"Aplikasi", L"Merchant", L"Courier",
+              L"Withdrawal"
+      });
+      this->cmbFilterType->Location = System::Drawing::Point(303, 54);
+      this->cmbFilterType->Name = L"cmbFilterType";
+      this->cmbFilterType->Size = System::Drawing::Size(130, 21);
+      this->cmbFilterType->TabIndex = 6;
+      this->cmbFilterType->SelectedIndexChanged += gcnew System::EventHandler(this, &adminForm::cmbFilterType_SelectedIndexChanged);
+      // 
       // dgvIncome
       // 
       this->dgvIncome->AllowUserToAddRows = false;
       this->dgvIncome->AllowUserToDeleteRows = false;
       this->dgvIncome->AutoSizeColumnsMode = System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
       this->dgvIncome->ColumnHeadersHeightSizeMode = System::Windows::Forms::DataGridViewColumnHeadersHeightSizeMode::AutoSize;
-      this->dgvIncome->Location = System::Drawing::Point(15, 50);
+      this->dgvIncome->Location = System::Drawing::Point(15, 90);
       this->dgvIncome->MultiSelect = false;
       this->dgvIncome->Name = L"dgvIncome";
       this->dgvIncome->ReadOnly = true;
-      this->dgvIncome->Size = System::Drawing::Size(820, 340);
+      this->dgvIncome->Size = System::Drawing::Size(820, 300);
       this->dgvIncome->TabIndex = 0;
       // 
       // btnRefreshIncome
       // 
-      this->btnRefreshIncome->Location = System::Drawing::Point(15, 407);
+      this->btnRefreshIncome->Location = System::Drawing::Point(15, 405);
       this->btnRefreshIncome->Name = L"btnRefreshIncome";
       this->btnRefreshIncome->Size = System::Drawing::Size(100, 30);
       this->btnRefreshIncome->TabIndex = 2;
@@ -937,6 +1049,8 @@ private:
       this->tabTransactions->Controls->Add(this->cmbFilterStatus);
       this->tabTransactions->Controls->Add(this->btnEditTransactionStatus);
       this->tabTransactions->Controls->Add(this->btnDeleteTransaction);
+      this->tabTransactions->Controls->Add(this->lblSearchTransaction);
+      this->tabTransactions->Controls->Add(this->txtSearchTransaction);
       this->tabTransactions->Location = System::Drawing::Point(4, 22);
       this->tabTransactions->Name = L"tabTransactions";
       this->tabTransactions->Padding = System::Windows::Forms::Padding(3);
@@ -1032,6 +1146,23 @@ private:
       this->btnDeleteTransaction->UseVisualStyleBackColor = false;
       this->btnDeleteTransaction->Click += gcnew System::EventHandler(this, &adminForm::btnDeleteTransaction_Click);
       // 
+      // lblSearchTransaction
+      // 
+      this->lblSearchTransaction->AutoSize = true;
+      this->lblSearchTransaction->Location = System::Drawing::Point(500, 20);
+      this->lblSearchTransaction->Name = L"lblSearchTransaction";
+      this->lblSearchTransaction->Size = System::Drawing::Size(44, 13);
+      this->lblSearchTransaction->TabIndex = 5;
+      this->lblSearchTransaction->Text = L"Search:";
+      // 
+      // txtSearchTransaction
+      // 
+      this->txtSearchTransaction->Location = System::Drawing::Point(550, 17);
+      this->txtSearchTransaction->Name = L"txtSearchTransaction";
+      this->txtSearchTransaction->Size = System::Drawing::Size(180, 20);
+      this->txtSearchTransaction->TabIndex = 6;
+      this->txtSearchTransaction->TextChanged += gcnew System::EventHandler(this, &adminForm::txtSearchTransaction_TextChanged);
+      // 
       // tabProducts
       // 
       this->tabProducts->Controls->Add(this->lblProductsTitle);
@@ -1040,6 +1171,8 @@ private:
       this->tabProducts->Controls->Add(this->btnEditProduct);
       this->tabProducts->Controls->Add(this->btnDeleteProduct);
       this->tabProducts->Controls->Add(this->panelEditProduct);
+      this->tabProducts->Controls->Add(this->lblSearchProduct);
+      this->tabProducts->Controls->Add(this->txtSearchProduct);
       this->tabProducts->Location = System::Drawing::Point(4, 22);
       this->tabProducts->Name = L"tabProducts";
       this->tabProducts->Padding = System::Windows::Forms::Padding(3);
@@ -1052,7 +1185,7 @@ private:
       // 
       this->lblProductsTitle->AutoSize = true;
       this->lblProductsTitle->Font = (gcnew System::Drawing::Font(L"Segoe UI", 14, System::Drawing::FontStyle::Bold));
-      this->lblProductsTitle->Location = System::Drawing::Point(18, 18);
+      this->lblProductsTitle->Location = System::Drawing::Point(18, 12);
       this->lblProductsTitle->Name = L"lblProductsTitle";
       this->lblProductsTitle->Size = System::Drawing::Size(207, 25);
       this->lblProductsTitle->TabIndex = 0;
@@ -1252,6 +1385,23 @@ private:
       this->btnCancelEditProduct->UseVisualStyleBackColor = false;
       this->btnCancelEditProduct->Click += gcnew System::EventHandler(this, &adminForm::btnCancelEditProduct_Click);
       // 
+      // lblSearchProduct
+      // 
+      this->lblSearchProduct->AutoSize = true;
+      this->lblSearchProduct->Location = System::Drawing::Point(242, 20);
+      this->lblSearchProduct->Name = L"lblSearchProduct";
+      this->lblSearchProduct->Size = System::Drawing::Size(44, 13);
+      this->lblSearchProduct->TabIndex = 5;
+      this->lblSearchProduct->Text = L"Search:";
+      // 
+      // txtSearchProduct
+      // 
+      this->txtSearchProduct->Location = System::Drawing::Point(292, 17);
+      this->txtSearchProduct->Name = L"txtSearchProduct";
+      this->txtSearchProduct->Size = System::Drawing::Size(180, 20);
+      this->txtSearchProduct->TabIndex = 6;
+      this->txtSearchProduct->TextChanged += gcnew System::EventHandler(this, &adminForm::txtSearchProduct_TextChanged);
+      // 
       // panelStats
       // 
       this->panelStats->Location = System::Drawing::Point(0, 0);
@@ -1324,6 +1474,7 @@ private:
   void LoadDashboardStats();
   void LoadUsers();
   void LoadIncome();
+  void FilterIncome();
   void LoadTransactions();
   System::Void btnRefreshStats_Click(System::Object ^ sender,
                                      System::EventArgs ^ e);
@@ -1335,6 +1486,10 @@ private:
                                        System::EventArgs ^ e);
   System::Void btnDeleteUser_Click(System::Object ^ sender,
                                    System::EventArgs ^ e);
+  System::Void txtSearchIncome_TextChanged(System::Object ^ sender,
+                                           System::EventArgs ^ e);
+  System::Void cmbFilterType_SelectedIndexChanged(System::Object ^ sender,
+                                                  System::EventArgs ^ e);
   System::Void btnRefreshIncome_Click(System::Object ^ sender,
                                       System::EventArgs ^ e);
   System::Void btnRefreshTransactions_Click(System::Object ^ sender,
@@ -1348,6 +1503,8 @@ private:
   System::Void btnCancelAddUser_Click(System::Object ^ sender,
                                       System::EventArgs ^ e);
   void ClearAddUserForm();
+  System::Void btnEditUser_Click(System::Object ^ sender,
+                                 System::EventArgs ^ e);
 
   // User search and filter
   System::Void txtSearchUser_TextChanged(System::Object ^ sender,
@@ -1378,6 +1535,11 @@ private:
   System::Void cmbFilterStatus_SelectedIndexChanged(System::Object ^ sender,
                                                     System::EventArgs ^ e);
   void FilterTransactions();
+  System::Void txtSearchTransaction_TextChanged(System::Object ^ sender,
+                                                System::EventArgs ^ e);
+  void FilterProducts();
+  System::Void txtSearchProduct_TextChanged(System::Object ^ sender,
+                                            System::EventArgs ^ e);
 
 private:
   System::Void lblTotalTransactions_Click(System::Object ^ sender,
@@ -1390,5 +1552,7 @@ private:
 private:
   System::Void btnAdminWithdraw_Click(System::Object ^ sender,
                                       System::EventArgs ^ e);
+private: System::Void panelAddUser_Paint(System::Object^ sender, System::Windows::Forms::PaintEventArgs^ e) {
+}
 };
 } // namespace ECommerce

@@ -29,6 +29,8 @@ System::Void merchantForm::merchantForm_Load(System::Object ^ sender,
     dgv->AlternatingRowsDefaultCellStyle->BackColor =
         System::Drawing::Color::FromArgb(245, 247, 250);
     dgv->ColumnHeadersHeight = 36;
+    dgv->DefaultCellStyle->WrapMode = DataGridViewTriState::True;
+    dgv->AutoSizeRowsMode = DataGridViewAutoSizeRowsMode::AllCells;
   }
 
   LoadDashboard();
@@ -58,11 +60,15 @@ void merchantForm::LoadProfile() {
 void merchantForm::LoadProducts() {
   dgvProducts->DataSource =
       DatabaseManager::GetProductsByMerchant(currentUserID);
+  if (dgvProducts->Columns["_RawID"] != nullptr)
+    dgvProducts->Columns["_RawID"]->Visible = false;
 }
 
 void merchantForm::LoadSales() {
   dgvSales->DataSource =
       DatabaseManager::GetTransactionsByMerchant(currentUserID);
+  if (dgvSales->Columns["_RawID"] != nullptr)
+    dgvSales->Columns["_RawID"]->Visible = false;
 }
 
 void merchantForm::ClearProductForm() {
@@ -126,7 +132,7 @@ System::Void merchantForm::btnEditProduct_Click(System::Object ^ sender,
 
   isEditMode = true;
   editProductID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   txtNamaProduk->Text =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   txtHarga->Text =
@@ -152,7 +158,7 @@ System::Void merchantForm::btnDeleteProduct_Click(System::Object ^ sender,
   }
 
   int productID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ productName =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
 
@@ -249,7 +255,7 @@ System::Void merchantForm::btnAddStock_Click(System::Object ^ sender,
 
   isEditMode = true;
   editProductID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   txtNamaProduk->Text =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   txtHarga->Text =

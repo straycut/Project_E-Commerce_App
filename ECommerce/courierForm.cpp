@@ -26,6 +26,8 @@ System::Void courierForm::courierForm_Load(System::Object ^ sender,
     dgv->AlternatingRowsDefaultCellStyle->BackColor =
         System::Drawing::Color::FromArgb(245, 247, 250);
     dgv->ColumnHeadersHeight = 36;
+    dgv->DefaultCellStyle->WrapMode = DataGridViewTriState::True;
+    dgv->AutoSizeRowsMode = DataGridViewAutoSizeRowsMode::AllCells;
   }
 
   LoadDashboard();
@@ -49,14 +51,20 @@ void courierForm::LoadDashboard() {
 
 void courierForm::LoadPending() {
   dgvPending->DataSource = DatabaseManager::GetPendingDeliveries();
+  if (dgvPending->Columns["_RawID"] != nullptr)
+    dgvPending->Columns["_RawID"]->Visible = false;
 }
 
 void courierForm::LoadActive() {
   dgvActive->DataSource = DatabaseManager::GetActiveDeliveries(currentUserID);
+  if (dgvActive->Columns["_RawID"] != nullptr)
+    dgvActive->Columns["_RawID"]->Visible = false;
 }
 
 void courierForm::LoadHistory() {
   dgvHistory->DataSource = DatabaseManager::GetDeliveryHistory(currentUserID);
+  if (dgvHistory->Columns["_RawID"] != nullptr)
+    dgvHistory->Columns["_RawID"]->Visible = false;
 }
 
 System::Void courierForm::btnRefreshDashboard_Click(System::Object ^ sender,
@@ -88,7 +96,7 @@ System::Void courierForm::btnClaim_Click(System::Object ^ sender,
     int fail = 0;
     for (int i = 0; i < dgvPending->SelectedRows->Count; i++) {
       int transID =
-          Convert::ToInt32(dgvPending->SelectedRows[i]->Cells["ID"]->Value);
+          Convert::ToInt32(dgvPending->SelectedRows[i]->Cells["_RawID"]->Value);
       if (DatabaseManager::ClaimDelivery(transID, currentUserID)) {
         success++;
       } else {
@@ -131,7 +139,7 @@ System::Void courierForm::btnComplete_Click(System::Object ^ sender,
     int fail = 0;
     for (int i = 0; i < dgvActive->SelectedRows->Count; i++) {
       int transID =
-          Convert::ToInt32(dgvActive->SelectedRows[i]->Cells["ID"]->Value);
+          Convert::ToInt32(dgvActive->SelectedRows[i]->Cells["_RawID"]->Value);
       if (DatabaseManager::CompleteDelivery(transID, currentUserID)) {
         success++;
       } else {

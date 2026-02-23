@@ -27,6 +27,8 @@ System::Void adminForm::adminForm_Load(System::Object ^ sender,
     dgv->AlternatingRowsDefaultCellStyle->BackColor =
         System::Drawing::Color::FromArgb(245, 247, 250);
     dgv->ColumnHeadersHeight = 36;
+    dgv->DefaultCellStyle->WrapMode = DataGridViewTriState::True;
+    dgv->AutoSizeRowsMode = DataGridViewAutoSizeRowsMode::AllCells;
   }
 
   LoadDashboardStats();
@@ -93,6 +95,10 @@ void adminForm::FilterUsers() {
   }
 
   dgvUsers->DataSource = filteredDt;
+  if (dgvUsers->Columns["_RawID"] != nullptr)
+    dgvUsers->Columns["_RawID"]->Visible = false;
+  if (dgvUsers->Columns["_Password"] != nullptr)
+    dgvUsers->Columns["_Password"]->Visible = false;
 }
 
 System::Void adminForm::txtSearchUser_TextChanged(System::Object ^ sender,
@@ -106,11 +112,47 @@ adminForm::cmbFilterRole_SelectedIndexChanged(System::Object ^ sender,
   FilterUsers();
 }
 
-void adminForm::LoadIncome() {
-  DataTable ^ dt = DatabaseManager::GetAllIncomeTable();
-  dgvIncome->DataSource = dt;
+void adminForm::LoadIncome() { FilterIncome(); }
 
-  // Calculate total
+void adminForm::FilterIncome() {
+  DataTable ^ dt = DatabaseManager::GetAllIncomeTable();
+
+  // Read filter values
+  String ^ selectedType =
+      (cmbFilterType != nullptr && cmbFilterType->SelectedItem != nullptr)
+          ? cmbFilterType->SelectedItem->ToString()
+          : "Semua";
+  String ^ searchText = txtSearchIncome != nullptr
+                            ? txtSearchIncome->Text->Trim()->ToLower()
+                            : "";
+
+  bool hasFilter =
+      (selectedType != "Semua") || !String::IsNullOrEmpty(searchText);
+
+  DataTable ^ displayDt = hasFilter ? dt->Clone() : dt;
+
+  if (hasFilter) {
+    for each (DataRow ^ row in dt->Rows) {
+      String ^ type = row["Type"]->ToString();
+      String ^ username = row["Username"]->ToString()->ToLower();
+      String ^ desc = row["Description"]->ToString()->ToLower();
+      String ^ id = row["ID"]->ToString()->ToLower();
+
+      bool matchType = selectedType == "Semua" || type == selectedType;
+      bool matchSearch = String::IsNullOrEmpty(searchText) ||
+                         username->Contains(searchText) ||
+                         desc->Contains(searchText) || id->Contains(searchText);
+
+      if (matchType && matchSearch)
+        displayDt->ImportRow(row);
+    }
+  }
+
+  dgvIncome->DataSource = displayDt;
+  if (dgvIncome->Columns["_RawID"] != nullptr)
+    dgvIncome->Columns["_RawID"]->Visible = false;
+
+  // Calculate total from full dataset (not filtered)
   int total = 0;
   for each (DataRow ^ row in dt->Rows) {
     total += Convert::ToInt32(row["Amount"]);
@@ -123,14 +165,22 @@ void adminForm::LoadTransactions() { FilterTransactions(); }
 void adminForm::FilterTransactions() {
   DataTable ^ dt = DatabaseManager::GetAllTransactionsTable();
 
-  // Check if control is initialized
+  // Check if controls are initialized
   String ^ selectedStatus =
       (cmbFilterStatus != nullptr && cmbFilterStatus->SelectedItem != nullptr)
           ? cmbFilterStatus->SelectedItem->ToString()
           : "Semua";
+  String ^ searchText = txtSearchTransaction != nullptr
+                            ? txtSearchTransaction->Text->Trim()->ToLower()
+                            : "";
 
-  if (selectedStatus == "Semua") {
+  bool hasFilter =
+      (selectedStatus != "Semua") || !String::IsNullOrEmpty(searchText);
+
+  if (!hasFilter) {
     dgvTransactions->DataSource = dt;
+    if (dgvTransactions->Columns["_RawID"] != nullptr)
+      dgvTransactions->Columns["_RawID"]->Visible = false;
     return;
   }
 
@@ -139,18 +189,34 @@ void adminForm::FilterTransactions() {
 
   for each (DataRow ^ row in dt->Rows) {
     String ^ status = row["Status"]->ToString();
+    String ^ pembeli = row["Pembeli"]->ToString()->ToLower();
+    String ^ kurir = row["Kurir"]->ToString()->ToLower();
+    String ^ id = row["ID"]->ToString()->ToLower();
 
-    if (status == selectedStatus) {
+    bool matchStatus = selectedStatus == "Semua" || status == selectedStatus;
+    bool matchSearch = String::IsNullOrEmpty(searchText) ||
+                       pembeli->Contains(searchText) ||
+                       kurir->Contains(searchText) || id->Contains(searchText);
+
+    if (matchStatus && matchSearch) {
       filteredDt->ImportRow(row);
     }
   }
 
   dgvTransactions->DataSource = filteredDt;
+  if (dgvTransactions->Columns["_RawID"] != nullptr)
+    dgvTransactions->Columns["_RawID"]->Visible = false;
 }
 
 System::Void
 adminForm::cmbFilterStatus_SelectedIndexChanged(System::Object ^ sender,
                                                 System::EventArgs ^ e) {
+  FilterTransactions();
+}
+
+System::Void
+adminForm::txtSearchTransaction_TextChanged(System::Object ^ sender,
+                                            System::EventArgs ^ e) {
   FilterTransactions();
 }
 
@@ -174,7 +240,8 @@ System::Void adminForm::btnActivateUser_Click(System::Object ^ sender,
     return;
   }
 
-  int userID = Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["ID"]->Value);
+  int userID =
+      Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ role = dgvUsers->SelectedRows[0]->Cells["Role"]->Value->ToString();
 
   if (role == "Admin") {
@@ -199,7 +266,8 @@ System::Void adminForm::btnDeactivateUser_Click(System::Object ^ sender,
     return;
   }
 
-  int userID = Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["ID"]->Value);
+  int userID =
+      Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ username =
       dgvUsers->SelectedRows[0]->Cells["Username"]->Value->ToString();
   String ^ role = dgvUsers->SelectedRows[0]->Cells["Role"]->Value->ToString();
@@ -232,7 +300,8 @@ System::Void adminForm::btnDeleteUser_Click(System::Object ^ sender,
     return;
   }
 
-  int userID = Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["ID"]->Value);
+  int userID =
+      Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ username =
       dgvUsers->SelectedRows[0]->Cells["Username"]->Value->ToString();
   String ^ role = dgvUsers->SelectedRows[0]->Cells["Role"]->Value->ToString();
@@ -240,6 +309,14 @@ System::Void adminForm::btnDeleteUser_Click(System::Object ^ sender,
   if (userID == currentUserID) {
     MessageBox::Show("Tidak dapat menghapus akun Anda sendiri!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (role == "Admin") {
+    MessageBox::Show(
+        "Akun Admin tidak dapat dihapus untuk menjaga integritas data "
+        "income.\nGunakan 'Nonaktifkan User' sebagai gantinya.",
+        "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
@@ -262,6 +339,17 @@ System::Void adminForm::btnRefreshIncome_Click(System::Object ^ sender,
   LoadIncome();
 }
 
+System::Void adminForm::txtSearchIncome_TextChanged(System::Object ^ sender,
+                                                    System::EventArgs ^ e) {
+  FilterIncome();
+}
+
+System::Void
+adminForm::cmbFilterType_SelectedIndexChanged(System::Object ^ sender,
+                                              System::EventArgs ^ e) {
+  FilterIncome();
+}
+
 System::Void adminForm::btnRefreshTransactions_Click(System::Object ^ sender,
                                                      System::EventArgs ^ e) {
   LoadTransactions();
@@ -280,6 +368,9 @@ System::Void adminForm::tabDashboard_Click(System::Object ^ sender,
 System::Void adminForm::btnAddUser_Click(System::Object ^ sender,
                                          System::EventArgs ^ e) {
   ClearAddUserForm();
+  editingUserID = -1;
+  cmbNewRole->Enabled = true;
+  lblPanelTitle->Text = L"Tambah User";
   panelAddUser->Visible = true;
   panelAddUser->BringToFront();
   txtNewUsername->Focus();
@@ -289,7 +380,7 @@ System::Void adminForm::btnSaveUser_Click(System::Object ^ sender,
                                           System::EventArgs ^ e) {
   // Validate input
   String ^ username = txtNewUsername->Text->Trim();
-  String ^ password = txtNewPassword->Text->Trim();
+  String ^ password = txtNewPassword->Text;
 
   if (String::IsNullOrEmpty(username)) {
     MessageBox::Show("Username tidak boleh kosong!", "Peringatan",
@@ -297,31 +388,48 @@ System::Void adminForm::btnSaveUser_Click(System::Object ^ sender,
     return;
   }
 
-  if (String::IsNullOrEmpty(password)) {
-    MessageBox::Show("Password tidak boleh kosong!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  if (cmbNewRole->SelectedIndex < 0) {
-    MessageBox::Show("Pilih role untuk user!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  String ^ role = cmbNewRole->SelectedItem->ToString();
-
-  // Register user
-  if (DatabaseManager::RegisterUser(username, password, role)) {
-    MessageBox::Show("User berhasil ditambahkan!", "Sukses",
-                     MessageBoxButtons::OK, MessageBoxIcon::Information);
-    ClearAddUserForm();
-    panelAddUser->Visible = false;
-    LoadUsers();
-    LoadDashboardStats();
+  if (editingUserID > 0) {
+    // EDIT MODE
+    if (DatabaseManager::UpdateUser(editingUserID, username, password)) {
+      MessageBox::Show("User berhasil diupdate!", "Sukses",
+                       MessageBoxButtons::OK, MessageBoxIcon::Information);
+      ClearAddUserForm();
+      panelAddUser->Visible = false;
+      editingUserID = -1;
+      cmbNewRole->Enabled = true;
+      FilterUsers();
+    } else {
+      MessageBox::Show("Gagal mengupdate user!", "Error", MessageBoxButtons::OK,
+                       MessageBoxIcon::Error);
+    }
   } else {
-    MessageBox::Show("Gagal menambahkan user! Username mungkin sudah ada.",
-                     "Error", MessageBoxButtons::OK, MessageBoxIcon::Error);
+    // ADD MODE
+    if (String::IsNullOrEmpty(password)) {
+      MessageBox::Show("Password tidak boleh kosong!", "Peringatan",
+                       MessageBoxButtons::OK, MessageBoxIcon::Warning);
+      return;
+    }
+
+    if (cmbNewRole->SelectedIndex < 0) {
+      MessageBox::Show("Pilih role untuk user!", "Peringatan",
+                       MessageBoxButtons::OK, MessageBoxIcon::Warning);
+      return;
+    }
+
+    String ^ role = cmbNewRole->SelectedItem->ToString();
+
+    // Register user
+    if (DatabaseManager::RegisterUser(username, password, role)) {
+      MessageBox::Show("User berhasil ditambahkan!", "Sukses",
+                       MessageBoxButtons::OK, MessageBoxIcon::Information);
+      ClearAddUserForm();
+      panelAddUser->Visible = false;
+      LoadUsers();
+      LoadDashboardStats();
+    } else {
+      MessageBox::Show("Gagal menambahkan user! Username mungkin sudah ada.",
+                       "Error", MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
   }
 }
 
@@ -329,17 +437,92 @@ System::Void adminForm::btnCancelAddUser_Click(System::Object ^ sender,
                                                System::EventArgs ^ e) {
   ClearAddUserForm();
   panelAddUser->Visible = false;
+  editingUserID = -1;
+  cmbNewRole->Enabled = true;
 }
 
 void adminForm::ClearAddUserForm() {
   txtNewUsername->Text = "";
   txtNewPassword->Text = "";
+  txtNewPassword->PasswordChar = '*';
   cmbNewRole->SelectedIndex = -1;
 }
 
+System::Void adminForm::btnEditUser_Click(System::Object ^ sender,
+                                          System::EventArgs ^ e) {
+  if (dgvUsers->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih user yang akan diedit!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  editingUserID =
+      Convert::ToInt32(dgvUsers->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ currentUsername =
+      dgvUsers->SelectedRows[0]->Cells["Username"]->Value->ToString();
+  String ^ currentPassword =
+      dgvUsers->SelectedRows[0]->Cells["_Password"]->Value->ToString();
+  String ^ currentRole =
+      dgvUsers->SelectedRows[0]->Cells["Role"]->Value->ToString();
+
+  // Pre-fill the panel
+  txtNewUsername->Text = currentUsername;
+  txtNewPassword->Text = currentPassword;
+  txtNewPassword->PasswordChar = '\0'; // Show password text
+
+  // Set role and disable it (can't change role during edit)
+  for (int i = 0; i < cmbNewRole->Items->Count; i++) {
+    if (cmbNewRole->Items[i]->ToString() == currentRole) {
+      cmbNewRole->SelectedIndex = i;
+      break;
+    }
+  }
+  cmbNewRole->Enabled = false;
+  lblPanelTitle->Text = L"Edit User";
+
+  panelAddUser->Visible = true;
+  panelAddUser->BringToFront();
+  txtNewUsername->Focus();
+}
+
 // Products management
-void adminForm::LoadProducts() {
-  dgvProducts->DataSource = DatabaseManager::GetAllProductsTable();
+void adminForm::LoadProducts() { FilterProducts(); }
+
+void adminForm::FilterProducts() {
+  DataTable ^ dt = DatabaseManager::GetAllProductsTable();
+
+  String ^ searchText = txtSearchProduct != nullptr
+                            ? txtSearchProduct->Text->Trim()->ToLower()
+                            : "";
+
+  if (String::IsNullOrEmpty(searchText)) {
+    dgvProducts->DataSource = dt;
+    if (dgvProducts->Columns["_RawID"] != nullptr)
+      dgvProducts->Columns["_RawID"]->Visible = false;
+    return;
+  }
+
+  DataTable ^ filteredDt = dt->Clone();
+
+  for each (DataRow ^ row in dt->Rows) {
+    String ^ nama = row["Nama"]->ToString()->ToLower();
+    String ^ kategori = row["Kategori"]->ToString()->ToLower();
+    String ^ id = row["ID"]->ToString()->ToLower();
+
+    if (nama->Contains(searchText) || kategori->Contains(searchText) ||
+        id->Contains(searchText)) {
+      filteredDt->ImportRow(row);
+    }
+  }
+
+  dgvProducts->DataSource = filteredDt;
+  if (dgvProducts->Columns["_RawID"] != nullptr)
+    dgvProducts->Columns["_RawID"]->Visible = false;
+}
+
+System::Void adminForm::txtSearchProduct_TextChanged(System::Object ^ sender,
+                                                     System::EventArgs ^ e) {
+  FilterProducts();
 }
 
 System::Void adminForm::btnRefreshProducts_Click(System::Object ^ sender,
@@ -356,7 +539,7 @@ System::Void adminForm::btnEditProduct_Click(System::Object ^ sender,
   }
 
   editProductID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   txtEditProductName->Text =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   txtEditProductPrice->Text =
@@ -382,7 +565,7 @@ System::Void adminForm::btnDeleteProduct_Click(System::Object ^ sender,
   }
 
   int productID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ productName =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
 
@@ -466,8 +649,8 @@ System::Void adminForm::btnEditTransactionStatus_Click(System::Object ^ sender,
     return;
   }
 
-  int transID =
-      Convert::ToInt32(dgvTransactions->SelectedRows[0]->Cells["ID"]->Value);
+  int transID = Convert::ToInt32(
+      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ currentStatus =
       dgvTransactions->SelectedRows[0]->Cells["Status"]->Value->ToString();
 
@@ -538,8 +721,8 @@ System::Void adminForm::btnDeleteTransaction_Click(System::Object ^ sender,
     return;
   }
 
-  int transID =
-      Convert::ToInt32(dgvTransactions->SelectedRows[0]->Cells["ID"]->Value);
+  int transID = Convert::ToInt32(
+      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
 
   System::Windows::Forms::DialogResult result = MessageBox::Show(
       "Apakah Anda yakin ingin menghapus transaksi ID: " + transID + "?",

@@ -38,7 +38,7 @@ System::Void loginF::btnMasuk_Click(System::Object ^ sender,
     // Check if user is active
     if (isActive == 0) {
       MessageBox::Show("Akun Anda telah dinonaktifkan oleh Admin.\nSilakan "
-                       "hubungi Administrator.",
+                       "hubungi Customer Service.",
                        "Akun Dinonaktifkan", MessageBoxButtons::OK,
                        MessageBoxIcon::Warning);
       return;
@@ -69,7 +69,7 @@ System::Void loginF::btnMasuk_Click(System::Object ^ sender,
     textBoxSandi->Text = "";
     this->Show();
   } else {
-    MessageBox::Show("Username atau Password salah!", "Login Gagal",
+    MessageBox::Show("Username atau Password salah!\nSilahkan Daftar jika belum ada akun", "Login Gagal",
                      MessageBoxButtons::OK, MessageBoxIcon::Error);
   }
 }

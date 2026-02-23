@@ -26,6 +26,8 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
     dgv->AlternatingRowsDefaultCellStyle->BackColor =
         System::Drawing::Color::FromArgb(245, 247, 250);
     dgv->ColumnHeadersHeight = 36;
+    dgv->DefaultCellStyle->WrapMode = DataGridViewTriState::True;
+    dgv->AutoSizeRowsMode = DataGridViewAutoSizeRowsMode::AllCells;
   }
 
   LoadSaldo();
@@ -61,11 +63,15 @@ void customerForm::LoadCatalog() {
     dgvProducts->Columns["MerchantID"]->Visible = false;
   if (dgvProducts->Columns["Komisi"])
     dgvProducts->Columns["Komisi"]->Visible = false;
+  if (dgvProducts->Columns["_RawID"] != nullptr)
+    dgvProducts->Columns["_RawID"]->Visible = false;
 }
 
 void customerForm::LoadHistory() {
   dgvHistory->DataSource =
       DatabaseManager::GetTransactionsByCustomer(currentUserID);
+  if (dgvHistory->Columns["_RawID"] != nullptr)
+    dgvHistory->Columns["_RawID"]->Visible = false;
 }
 
 void customerForm::FilterProducts(String ^ keyword) {
@@ -82,6 +88,8 @@ void customerForm::FilterProducts(String ^ keyword) {
     dgvProducts->Columns["MerchantID"]->Visible = false;
   if (dgvProducts->Columns["Komisi"])
     dgvProducts->Columns["Komisi"]->Visible = false;
+  if (dgvProducts->Columns["_RawID"] != nullptr)
+    dgvProducts->Columns["_RawID"]->Visible = false;
 }
 
 System::Void customerForm::txtSearch_TextChanged(System::Object ^ sender,
@@ -111,7 +119,7 @@ System::Void customerForm::btnAddToCart_Click(System::Object ^ sender,
   }
 
   int productID =
-      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ productName =
       dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
   int harga =
@@ -307,7 +315,7 @@ System::Void customerForm::btnUpdateQuantity_Click(System::Object ^ sender,
   // Check stock availability
   DataTable ^ products = DatabaseManager::GetAllProductsWithMerchantName();
   for (int i = 0; i < products->Rows->Count; i++) {
-    if (Convert::ToInt32(products->Rows[i]["ID"]) == productID) {
+    if (Convert::ToInt32(products->Rows[i]["_RawID"]) == productID) {
       int stok = Convert::ToInt32(products->Rows[i]["Stok"]);
       if (newJumlah > stok) {
         MessageBox::Show(
@@ -340,7 +348,7 @@ System::Void customerForm::btnConfirmReceived_Click(System::Object ^ sender,
   }
 
   int transactionID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ status =
       dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
 
@@ -426,7 +434,7 @@ System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
   }
 
   int transactionID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["ID"]->Value);
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
   String ^ status =
       dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
 
