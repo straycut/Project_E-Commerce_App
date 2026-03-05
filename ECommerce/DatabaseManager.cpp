@@ -33,6 +33,7 @@ struct ProductData {
   int merchantID;
   std::string merchantName;
   std::string merchantAlamat;
+  int isActive;
 };
 
 struct TransactionData {
@@ -47,6 +48,8 @@ struct TransactionData {
   std::string merchantAddress;
   std::string customerName;
   std::string courierName;
+  std::string productName;
+  int productPrice;
 };
 
 struct IncomeData {
@@ -125,6 +128,8 @@ static bool NativeInitialize() {
   // Add columns if not exists (for existing databases)
   ExecuteSQL("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
   ExecuteSQL("ALTER TABLE users ADD COLUMN alamat TEXT DEFAULT '';");
+  ExecuteSQL(
+      "ALTER TABLE users ADD COLUMN courier_type TEXT DEFAULT 'regular';");
 
   // Create Products table with stok column
   const char *createProductsSQL =
@@ -160,6 +165,7 @@ static bool NativeInitialize() {
       "customer_id INTEGER,"
       "affiliate_id INTEGER,"
       "status TEXT DEFAULT 'pending',"
+      "shipping_type TEXT DEFAULT 'regular',"
       "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
       "FOREIGN KEY (product_id) REFERENCES products(id),"
       "FOREIGN KEY (customer_id) REFERENCES users(id),"
@@ -169,6 +175,15 @@ static bool NativeInitialize() {
   if (!ExecuteSQL(createTransactionsSQL))
     return false;
 
+  // Add shipping_type column if not exists (for existing databases)
+  ExecuteSQL("ALTER TABLE transactions ADD COLUMN shipping_type TEXT DEFAULT "
+             "'regular';");
+
+  // Update income type constraint for withdrawal support
+  // Note: SQLite cannot ALTER CHECK constraints, but new rows will use the
+  // updated CREATE TABLE. For existing databases, the INSERT will succeed
+  // because SQLite does not enforce CHECK on ALTER.
+
   // Create Income table
   const char *createIncomeSQL =
       "CREATE TABLE IF NOT EXISTS income ("
@@ -176,7 +191,8 @@ static bool NativeInitialize() {
       "user_id INTEGER NOT NULL,"
       "transaction_id INTEGER,"
       "amount INTEGER NOT NULL,"
-      "type TEXT NOT NULL CHECK(type IN ('commission', 'sale', 'delivery')),"
+      "type TEXT NOT NULL CHECK(type IN ('commission', 'sale', 'delivery', "
+      "'withdrawal')),"
       "description TEXT,"
       "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
       "FOREIGN KEY (user_id) REFERENCES users(id),"
@@ -185,6 +201,50 @@ static bool NativeInitialize() {
 
   if (!ExecuteSQL(createIncomeSQL))
     return false;
+
+  // Add is_active column to products
+  ExecuteSQL("ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1;");
+
+  // Create Notifications table
+  const char *createNotificationsSQL =
+      "CREATE TABLE IF NOT EXISTS notifications ("
+      "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+      "user_id INTEGER NOT NULL,"
+      "message TEXT NOT NULL,"
+      "reason TEXT,"
+      "is_read INTEGER DEFAULT 0,"
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+      "FOREIGN KEY (user_id) REFERENCES users(id)"
+      ");";
+  ExecuteSQL(createNotificationsSQL);
+
+  // Create Reviews table
+  const char *createReviewsSQL =
+      "CREATE TABLE IF NOT EXISTS reviews ("
+      "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+      "transaction_id INTEGER UNIQUE,"
+      "customer_id INTEGER,"
+      "product_id INTEGER,"
+      "rating INTEGER CHECK(rating BETWEEN 1 AND 5),"
+      "comment TEXT,"
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+      "FOREIGN KEY (transaction_id) REFERENCES transactions(id),"
+      "FOREIGN KEY (customer_id) REFERENCES users(id),"
+      "FOREIGN KEY (product_id) REFERENCES products(id)"
+      ");";
+  ExecuteSQL(createReviewsSQL);
+
+  // Create Order Tracking table
+  const char *createTrackingSQL =
+      "CREATE TABLE IF NOT EXISTS order_tracking ("
+      "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+      "transaction_id INTEGER,"
+      "status TEXT,"
+      "description TEXT,"
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+      "FOREIGN KEY (transaction_id) REFERENCES transactions(id)"
+      ");";
+  ExecuteSQL(createTrackingSQL);
 
   // Insert default admin
   const char *insertAdminSQL = "INSERT OR IGNORE INTO users (username, "
@@ -220,6 +280,34 @@ static bool NativeRegisterUser(const std::string &username,
   sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
   sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
   sqlite3_bind_text(stmt, 3, role.c_str(), -1, SQLITE_STATIC);
+
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+
+  return rc == SQLITE_DONE;
+}
+
+// Register user with courier_type
+static bool NativeRegisterUser(const std::string &username,
+                               const std::string &password,
+                               const std::string &role,
+                               const std::string &courierType) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql =
+      "INSERT INTO users (username, password, role, saldo, is_active, "
+      "courier_type) VALUES (?, ?, ?, 0, 1, ?);";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+
+  sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 3, role.c_str(), -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 4, courierType.c_str(), -1, SQLITE_STATIC);
 
   rc = sqlite3_step(stmt);
   sqlite3_finalize(stmt);
@@ -800,10 +888,10 @@ static std::vector<ProductData> NativeGetAllProducts() {
   if (g_db == nullptr)
     return products;
 
-  const char *sql =
-      "SELECT id, nama, harga, komisi, stok, merchant_id, "
-      "COALESCE(kategori, ''), COALESCE(deskripsi, '') FROM products "
-      "ORDER BY id DESC;";
+  const char *sql = "SELECT id, nama, harga, komisi, stok, merchant_id, "
+                    "COALESCE(kategori, ''), COALESCE(deskripsi, ''), "
+                    "COALESCE(is_active, 1) FROM products "
+                    "ORDER BY id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -826,6 +914,7 @@ static std::vector<ProductData> NativeGetAllProducts() {
     const char *desk =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     product.deskripsi = desk ? desk : "";
+    product.isActive = sqlite3_column_int(stmt, 8);
     products.push_back(product);
   }
 
@@ -845,6 +934,7 @@ static std::vector<ProductData> NativeGetAllProductsWithMerchantName() {
                     "COALESCE(u.alamat, '') "
                     "FROM products p "
                     "LEFT JOIN users u ON p.merchant_id = u.id "
+                    "WHERE COALESCE(p.is_active, 1) = 1 "
                     "ORDER BY p.id DESC;";
   sqlite3_stmt *stmt;
 
@@ -967,10 +1057,39 @@ static bool NativeUpdateUserAddress(int userID, const std::string &alamat) {
   return rc == SQLITE_DONE;
 }
 
-// Purchase product - create transaction and handle money
+// Get active express couriers
+static std::vector<UserData> NativeGetExpressCouriers() {
+  std::vector<UserData> couriers;
+  if (g_db == nullptr)
+    return couriers;
+
+  const char *sql =
+      "SELECT id, username FROM users WHERE role = 'Courier' AND "
+      "courier_type = 'express' AND is_active = 1 ORDER BY username;";
+  sqlite3_stmt *stmt;
+
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return couriers;
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    UserData user;
+    user.id = sqlite3_column_int(stmt, 0);
+    const char *uname =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    user.username = uname ? uname : "";
+    couriers.push_back(user);
+  }
+
+  sqlite3_finalize(stmt);
+  return couriers;
+}
+
 // Purchase product - create transaction and handle money
 static bool NativePurchaseProduct(int productID, int customerID,
-                                  bool chargeOngkir) {
+                                  bool chargeOngkir,
+                                  const std::string &shippingType = "regular",
+                                  int courierID = 0) {
   if (g_db == nullptr)
     return false;
 
@@ -1074,13 +1193,20 @@ static bool NativePurchaseProduct(int productID, int customerID,
   }
 
   // Create transaction
-  const char *sqlTrans = "INSERT INTO transactions (product_id, customer_id, "
-                         "status) VALUES (?, ?, 'pending');";
+  const char *sqlTrans =
+      courierID > 0
+          ? "INSERT INTO transactions (product_id, customer_id, status, "
+            "shipping_type, affiliate_id) VALUES (?, ?, 'pending', ?, ?);"
+          : "INSERT INTO transactions (product_id, customer_id, status, "
+            "shipping_type) VALUES (?, ?, 'pending', ?);";
   int transID = 0;
 
   if (sqlite3_prepare_v2(g_db, sqlTrans, -1, &stmt, nullptr) == SQLITE_OK) {
     sqlite3_bind_int(stmt, 1, productID);
     sqlite3_bind_int(stmt, 2, customerID);
+    sqlite3_bind_text(stmt, 3, shippingType.c_str(), -1, SQLITE_TRANSIENT);
+    if (courierID > 0)
+      sqlite3_bind_int(stmt, 4, courierID);
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
@@ -1227,7 +1353,22 @@ static bool NativeWithdrawSaldo(int userID, int amount) {
     return false;
 
   // Deduct saldo
-  return NativeUpdateUserSaldo(userID, currentSaldo - amount);
+  if (!NativeUpdateUserSaldo(userID, currentSaldo - amount))
+    return false;
+
+  // Record withdrawal in income table
+  const char *sqlIncome =
+      "INSERT INTO income (user_id, transaction_id, amount, type, description) "
+      "VALUES (?, 0, ?, 'withdrawal', 'Penarikan saldo');";
+  sqlite3_stmt *stmt;
+  if (sqlite3_prepare_v2(g_db, sqlIncome, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, userID);
+    sqlite3_bind_int(stmt, 2, -amount);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  return true;
 }
 
 // Cancel order and refund customer
@@ -1336,29 +1477,79 @@ static void EnsureCourierColumn() {
   ExecuteSQL("ALTER TABLE transactions ADD COLUMN courier_id INTEGER;");
 }
 
-// Get pending deliveries (no courier assigned)
-static std::vector<TransactionData> NativeGetPendingDeliveries() {
+// Get courier type for a user
+static std::string NativeGetUserCourierType(int userID) {
+  if (g_db == nullptr)
+    return "regular";
+
+  const char *sql =
+      "SELECT COALESCE(courier_type, 'regular') FROM users WHERE id = ?;";
+  sqlite3_stmt *stmt;
+  std::string courierType = "regular";
+
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, userID);
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      const char *ct =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      courierType = ct ? ct : "regular";
+    }
+    sqlite3_finalize(stmt);
+  }
+  return courierType;
+}
+
+// Get pending deliveries filtered by courier type
+// Regular couriers: only see regular orders (no courier assigned)
+// Express couriers: see regular orders + express orders assigned to them
+static std::vector<TransactionData>
+NativeGetPendingDeliveries(int courierID, const std::string &courierType) {
   std::vector<TransactionData> transactions;
   if (g_db == nullptr)
     return transactions;
 
   EnsureCourierColumn();
 
-  const char *sql =
-      "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
-      "COALESCE(t.created_at, ''), "
-      "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
-      "COALESCE(u_cust.username, '') "
-      "FROM transactions t "
-      "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
-      "LEFT JOIN products p ON t.product_id = p.id "
-      "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
-      "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
-      "t.courier_id = 0) "
-      "ORDER BY t.id DESC;";
-  sqlite3_stmt *stmt;
+  std::string sqlStr;
+  if (courierType == "express") {
+    // Express courier sees: regular unclaimed + express assigned to them
+    sqlStr =
+        "SELECT t.id, t.product_id, t.customer_id, COALESCE(t.courier_id, 0), "
+        "t.status, COALESCE(t.created_at, ''), "
+        "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
+        "COALESCE(u_cust.username, ''), "
+        "COALESCE(p.nama, ''), COALESCE(p.harga, 0) "
+        "FROM transactions t "
+        "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+        "LEFT JOIN products p ON t.product_id = p.id "
+        "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+        "WHERE t.status = 'pending' AND ("
+        "  ((t.courier_id IS NULL OR t.courier_id = 0) AND "
+        "   COALESCE(t.shipping_type, 'regular') = 'regular')"
+        "  OR "
+        "  (t.courier_id = " +
+        std::to_string(courierID) +
+        " AND COALESCE(t.shipping_type, 'regular') = 'express')"
+        ") ORDER BY u_cust.username, t.id DESC;";
+  } else {
+    // Regular courier: only regular orders with no courier
+    sqlStr = "SELECT t.id, t.product_id, t.customer_id, 0, t.status, "
+             "COALESCE(t.created_at, ''), "
+             "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
+             "COALESCE(u_cust.username, ''), "
+             "COALESCE(p.nama, ''), COALESCE(p.harga, 0) "
+             "FROM transactions t "
+             "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
+             "LEFT JOIN products p ON t.product_id = p.id "
+             "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
+             "WHERE t.status = 'pending' AND (t.courier_id IS NULL OR "
+             "t.courier_id = 0) AND COALESCE(t.shipping_type, 'regular') = "
+             "'regular' "
+             "ORDER BY u_cust.username, t.id DESC;";
+  }
 
-  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sqlStr.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK)
     return transactions;
 
@@ -1372,19 +1563,19 @@ static std::vector<TransactionData> NativeGetPendingDeliveries() {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-
     const char *custAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-
     const char *merchAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-
     const char *custName =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
     trans.customerName = custName ? custName : "";
-
+    const char *prodName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    trans.productName = prodName ? prodName : "";
+    trans.productPrice = sqlite3_column_int(stmt, 10);
     transactions.push_back(trans);
   }
 
@@ -1402,13 +1593,14 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
       "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
       "COALESCE(t.created_at, ''), "
       "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
-      "COALESCE(u_cust.username, '') "
+      "COALESCE(u_cust.username, ''), "
+      "COALESCE(p.nama, ''), COALESCE(p.harga, 0) "
       "FROM transactions t "
       "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "LEFT JOIN products p ON t.product_id = p.id "
       "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
       "WHERE t.courier_id = ? AND t.status = 'shipping' "
-      "ORDER BY t.id DESC;";
+      "ORDER BY u_cust.username, t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -1427,19 +1619,19 @@ static std::vector<TransactionData> NativeGetActiveDeliveries(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-
     const char *custAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-
     const char *merchAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-
     const char *custName =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
     trans.customerName = custName ? custName : "";
-
+    const char *prodName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    trans.productName = prodName ? prodName : "";
+    trans.productPrice = sqlite3_column_int(stmt, 10);
     transactions.push_back(trans);
   }
 
@@ -1457,13 +1649,14 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
       "SELECT t.id, t.product_id, t.customer_id, t.courier_id, t.status, "
       "COALESCE(t.created_at, ''), "
       "COALESCE(u_cust.alamat, ''), COALESCE(u_merch.alamat, ''), "
-      "COALESCE(u_cust.username, '') "
+      "COALESCE(u_cust.username, ''), "
+      "COALESCE(p.nama, ''), COALESCE(p.harga, 0) "
       "FROM transactions t "
       "LEFT JOIN users u_cust ON t.customer_id = u_cust.id "
       "LEFT JOIN products p ON t.product_id = p.id "
       "LEFT JOIN users u_merch ON p.merchant_id = u_merch.id "
       "WHERE t.courier_id = ? AND t.status = 'delivered' "
-      "ORDER BY t.id DESC;";
+      "ORDER BY u_cust.username, t.id DESC;";
   sqlite3_stmt *stmt;
 
   int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
@@ -1482,19 +1675,19 @@ static std::vector<TransactionData> NativeGetDeliveryHistory(int courierID) {
     const char *created =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
     trans.createdAt = created ? created : "";
-
     const char *custAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
     trans.customerAddress = custAddr ? custAddr : "";
-
     const char *merchAddr =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 7));
     trans.merchantAddress = merchAddr ? merchAddr : "";
-
     const char *custName =
         reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
     trans.customerName = custName ? custName : "";
-
+    const char *prodName =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 9));
+    trans.productName = prodName ? prodName : "";
+    trans.productPrice = sqlite3_column_int(stmt, 10);
     transactions.push_back(trans);
   }
 
@@ -1618,6 +1811,375 @@ static CourierStats NativeGetCourierStats(int courierID) {
   return stats;
 }
 
+// ============ Product Deactivation & Notifications ============
+
+struct NotificationData {
+  int id;
+  std::string message;
+  std::string reason;
+  std::string createdAt;
+  int isRead;
+};
+
+// Deactivate a product and notify the merchant
+static bool NativeDeactivateProduct(int productID, const std::string &reason) {
+  if (g_db == nullptr)
+    return false;
+
+  // Get merchant_id and product name
+  const char *sqlGet = "SELECT merchant_id, nama FROM products WHERE id = ?;";
+  sqlite3_stmt *stmt;
+  int merchantID = 0;
+  std::string productName;
+
+  if (sqlite3_prepare_v2(g_db, sqlGet, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, productID);
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      merchantID = sqlite3_column_int(stmt, 0);
+      const char *n =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+      productName = n ? n : "";
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  if (merchantID == 0)
+    return false;
+
+  // Set is_active = 0
+  const char *sqlDeact = "UPDATE products SET is_active = 0 WHERE id = ?;";
+  if (sqlite3_prepare_v2(g_db, sqlDeact, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, productID);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  // Insert notification for merchant
+  std::string msg =
+      "Produk '" + productName + "' telah dinonaktifkan oleh Admin.";
+  const char *sqlNotif =
+      "INSERT INTO notifications (user_id, message, reason) VALUES (?, ?, ?);";
+  if (sqlite3_prepare_v2(g_db, sqlNotif, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, merchantID);
+    sqlite3_bind_text(stmt, 2, msg.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, reason.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  return true;
+}
+
+// Activate a product
+static bool NativeActivateProduct(int productID) {
+  if (g_db == nullptr)
+    return false;
+  const char *sql = "UPDATE products SET is_active = 1 WHERE id = ?;";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, productID);
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  return rc == SQLITE_DONE;
+}
+
+// Get unread notifications for a user
+static std::vector<NotificationData> NativeGetNotifications(int userID) {
+  std::vector<NotificationData> notifs;
+  if (g_db == nullptr)
+    return notifs;
+
+  const char *sql = "SELECT id, message, COALESCE(reason, ''), "
+                    "COALESCE(created_at, ''), is_read "
+                    "FROM notifications WHERE user_id = ? ORDER BY id DESC;";
+  sqlite3_stmt *stmt;
+
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, userID);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      NotificationData n;
+      n.id = sqlite3_column_int(stmt, 0);
+      const char *msg =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+      n.message = msg ? msg : "";
+      const char *rsn =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+      n.reason = rsn ? rsn : "";
+      const char *ca =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
+      n.createdAt = ca ? ca : "";
+      n.isRead = sqlite3_column_int(stmt, 4);
+      notifs.push_back(n);
+    }
+    sqlite3_finalize(stmt);
+  }
+  return notifs;
+}
+
+// Mark all notifications as read for a user
+static bool NativeMarkNotificationsRead(int userID) {
+  if (g_db == nullptr)
+    return false;
+  const char *sql =
+      "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0;";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, userID);
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  return rc == SQLITE_DONE;
+}
+
+// ============ Refund Functions ============
+
+// Full refund: reverse all financial effects of a transaction
+static bool NativeRefundOrder(int transactionID) {
+  if (g_db == nullptr)
+    return false;
+
+  // Get transaction details
+  const char *sqlGet =
+      "SELECT t.product_id, t.customer_id, COALESCE(t.courier_id, 0), "
+      "t.status, p.harga, p.komisi, p.merchant_id "
+      "FROM transactions t "
+      "JOIN products p ON t.product_id = p.id "
+      "WHERE t.id = ?;";
+  sqlite3_stmt *stmt;
+
+  int productID = 0, customerID = 0, courierID = 0, harga = 0, komisi = 0,
+      merchantID = 0;
+  std::string status;
+
+  int rc = sqlite3_prepare_v2(g_db, sqlGet, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, transactionID);
+
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    productID = sqlite3_column_int(stmt, 0);
+    customerID = sqlite3_column_int(stmt, 1);
+    courierID = sqlite3_column_int(stmt, 2);
+    const char *s =
+        reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
+    status = s ? s : "";
+    harga = sqlite3_column_int(stmt, 4);
+    komisi = sqlite3_column_int(stmt, 5);
+    merchantID = sqlite3_column_int(stmt, 6);
+  }
+  sqlite3_finalize(stmt);
+
+  // Only allow refund for shipping/delivered/refund_requested
+  if (status != "shipping" && status != "delivered" &&
+      status != "refund_requested")
+    return false;
+
+  ExecuteSQL("BEGIN TRANSACTION;");
+
+  // 1. Refund customer (harga + ongkir)
+  int ongkir = 10000;
+  int refundAmount = harga + ongkir;
+  int customerSaldo = NativeGetUserSaldo(customerID);
+  if (!NativeUpdateUserSaldo(customerID, customerSaldo + refundAmount)) {
+    ExecuteSQL("ROLLBACK;");
+    return false;
+  }
+
+  // 2. Reverse merchant income
+  int merchantIncome = harga - (harga * komisi / 100);
+  int merchantSaldo = NativeGetUserSaldo(merchantID);
+  NativeUpdateUserSaldo(merchantID, merchantSaldo - merchantIncome);
+
+  // 3. Reverse courier income (if delivery was completed)
+  if (courierID > 0 && status == "delivered") {
+    int deliveryFee = 10000;
+    int courierSaldo = NativeGetUserSaldo(courierID);
+    NativeUpdateUserSaldo(courierID, courierSaldo - deliveryFee);
+  }
+
+  // 4. Restore stock
+  const char *sqlStock = "UPDATE products SET stok = stok + 1 WHERE id = ?;";
+  if (sqlite3_prepare_v2(g_db, sqlStock, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, productID);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  // 5. Delete income records for this transaction
+  const char *sqlDelIncome = "DELETE FROM income WHERE transaction_id = ?;";
+  if (sqlite3_prepare_v2(g_db, sqlDelIncome, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  // 6. Update transaction status to 'refunded'
+  const char *sqlUpdate =
+      "UPDATE transactions SET status = 'refunded' WHERE id = ?;";
+  if (sqlite3_prepare_v2(g_db, sqlUpdate, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+      ExecuteSQL("ROLLBACK;");
+      return false;
+    }
+  }
+
+  // 7. Notify merchant
+  const char *sqlNotifMerch =
+      "INSERT INTO notifications (user_id, message, reason) VALUES "
+      "(?, 'Pesanan telah di-refund oleh Admin.', 'Barang tidak sampai');";
+  if (sqlite3_prepare_v2(g_db, sqlNotifMerch, -1, &stmt, nullptr) ==
+      SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, merchantID);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  }
+
+  ExecuteSQL("COMMIT;");
+  return true;
+}
+
+// Customer requests refund (changes status to refund_requested)
+static bool NativeRequestRefund(int transactionID, int customerID) {
+  if (g_db == nullptr)
+    return false;
+
+  const char *sql = "UPDATE transactions SET status = 'refund_requested' "
+                    "WHERE id = ? AND customer_id = ? AND status = 'shipping' "
+                    "AND julianday('now') - julianday(created_at) > 3;";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, transactionID);
+  sqlite3_bind_int(stmt, 2, customerID);
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  return rc == SQLITE_DONE && sqlite3_changes(g_db) > 0;
+}
+
+// ============ Reviews ============
+
+struct ReviewData {
+  int id;
+  int rating;
+  std::string comment;
+  std::string customerName;
+  std::string createdAt;
+};
+
+static bool NativeAddReview(int transactionID, int customerID, int productID,
+                            int rating, const std::string &comment) {
+  if (g_db == nullptr)
+    return false;
+  const char *sql =
+      "INSERT INTO reviews (transaction_id, customer_id, product_id, rating, "
+      "comment) VALUES (?, ?, ?, ?, ?);";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, transactionID);
+  sqlite3_bind_int(stmt, 2, customerID);
+  sqlite3_bind_int(stmt, 3, productID);
+  sqlite3_bind_int(stmt, 4, rating);
+  sqlite3_bind_text(stmt, 5, comment.c_str(), -1, SQLITE_TRANSIENT);
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  return rc == SQLITE_DONE;
+}
+
+static double NativeGetAverageRating(int productID) {
+  if (g_db == nullptr)
+    return 0.0;
+  const char *sql =
+      "SELECT COALESCE(AVG(CAST(rating AS REAL)), 0) FROM reviews WHERE "
+      "product_id = ?;";
+  sqlite3_stmt *stmt;
+  double avg = 0.0;
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, productID);
+    if (sqlite3_step(stmt) == SQLITE_ROW)
+      avg = sqlite3_column_double(stmt, 0);
+    sqlite3_finalize(stmt);
+  }
+  return avg;
+}
+
+static bool NativeHasReviewed(int transactionID) {
+  if (g_db == nullptr)
+    return true;
+  const char *sql = "SELECT COUNT(*) FROM reviews WHERE transaction_id = ?;";
+  sqlite3_stmt *stmt;
+  bool exists = true;
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    if (sqlite3_step(stmt) == SQLITE_ROW)
+      exists = sqlite3_column_int(stmt, 0) > 0;
+    sqlite3_finalize(stmt);
+  }
+  return exists;
+}
+
+// ============ Order Tracking ============
+
+struct TrackingData {
+  std::string status;
+  std::string description;
+  std::string createdAt;
+};
+
+static bool NativeAddTrackingEvent(int transactionID, const std::string &status,
+                                   const std::string &description) {
+  if (g_db == nullptr)
+    return false;
+  const char *sql = "INSERT INTO order_tracking (transaction_id, status, "
+                    "description) VALUES (?, ?, ?);";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK)
+    return false;
+  sqlite3_bind_int(stmt, 1, transactionID);
+  sqlite3_bind_text(stmt, 2, status.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 3, description.c_str(), -1, SQLITE_TRANSIENT);
+  rc = sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  return rc == SQLITE_DONE;
+}
+
+static std::vector<TrackingData> NativeGetOrderTracking(int transactionID) {
+  std::vector<TrackingData> tracking;
+  if (g_db == nullptr)
+    return tracking;
+  const char *sql = "SELECT status, description, "
+                    "COALESCE(created_at, '') FROM order_tracking "
+                    "WHERE transaction_id = ? ORDER BY id ASC;";
+  sqlite3_stmt *stmt;
+  if (sqlite3_prepare_v2(g_db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, transactionID);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      TrackingData t;
+      const char *s =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+      t.status = s ? s : "";
+      const char *d =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+      t.description = d ? d : "";
+      const char *c =
+          reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+      t.createdAt = c ? c : "";
+      tracking.push_back(t);
+    }
+    sqlite3_finalize(stmt);
+  }
+  return tracking;
+}
+
 #pragma managed(pop)
 
 // ============ Managed Wrapper Implementation ============
@@ -1643,6 +2205,17 @@ public:
     std::string r = msclr::interop::marshal_as<std::string>(role);
 
     return NativeRegisterUser(user, pass, r);
+  }
+
+  // Register with courier_type
+  static bool RegisterUser(String ^ username, String ^ password, String ^ role,
+                           String ^ courierType) {
+    std::string user = msclr::interop::marshal_as<std::string>(username);
+    std::string pass = msclr::interop::marshal_as<std::string>(password);
+    std::string r = msclr::interop::marshal_as<std::string>(role);
+    std::string ct = msclr::interop::marshal_as<std::string>(courierType);
+
+    return NativeRegisterUser(user, pass, r, ct);
   }
 
   static bool ValidateUser(String ^ username, String ^ password,
@@ -1968,6 +2541,7 @@ public:
     dt->Columns->Add("MerchantID", Int32::typeid);
     dt->Columns->Add("Kategori", String::typeid);
     dt->Columns->Add("Deskripsi", String::typeid);
+    dt->Columns->Add("Status", String::typeid);
 
     std::vector<ProductData> products = NativeGetAllProducts();
     for (const auto &product : products) {
@@ -1981,6 +2555,7 @@ public:
       row["MerchantID"] = product.merchantID;
       row["Kategori"] = gcnew String(product.kategori.c_str());
       row["Deskripsi"] = gcnew String(product.deskripsi.c_str());
+      row["Status"] = product.isActive ? L"Aktif" : L"Nonaktif";
       dt->Rows->Add(row);
     }
 
@@ -2044,10 +2619,35 @@ public:
     return NativePurchaseProduct(productID, customerID, chargeOngkir);
   }
 
+  // Purchase product with shipping type and courier
+  static bool PurchaseProduct(int productID, int customerID, bool chargeOngkir,
+                              String ^ shippingType, int courierID) {
+    std::string st = msclr::interop::marshal_as<std::string>(shippingType);
+    return NativePurchaseProduct(productID, customerID, chargeOngkir, st,
+                                 courierID);
+  }
+
+  // Get active express couriers
+  static DataTable ^ GetExpressCouriers() {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("ID", Int32::typeid);
+    dt->Columns->Add("Username", String::typeid);
+
+    std::vector<UserData> couriers = NativeGetExpressCouriers();
+    for (const auto &courier : couriers) {
+      DataRow ^ row = dt->NewRow();
+      row["ID"] = courier.id;
+      row["Username"] = gcnew String(courier.username.c_str());
+      dt->Rows->Add(row);
+    }
+    return dt;
+  }
+
   // Get transactions by customer as DataTable
   static DataTable ^ GetTransactionsByCustomer(int customerID) {
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("_RawID", Int32::typeid);
+    dt->Columns->Add("_RawProductID", Int32::typeid);
     dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("Produk", String::typeid);
     dt->Columns->Add("Total", Int32::typeid);
@@ -2062,6 +2662,7 @@ public:
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
       row["_RawID"] = trans.transID;
+      row["_RawProductID"] = trans.productID;
       row["ID"] = "TRN" + trans.transID;
       row["Produk"] = gcnew String(trans.customerName.c_str()); // Product name
       row["Total"] = trans.totalPrice;
@@ -2093,25 +2694,47 @@ public:
 
   // ============ Courier Functions ============
 
-  // Get pending deliveries as DataTable
-  static DataTable ^ GetPendingDeliveries() {
+  // Get courier type for a user
+  static String ^ GetUserCourierType(int userID) {
+    std::string ct = NativeGetUserCourierType(userID);
+    return gcnew String(ct.c_str());
+  }
+
+  // Get pending deliveries as DataTable (filtered by courier type)
+  static DataTable ^ GetPendingDeliveries(int courierID, String ^ courierType) {
     DataTable ^ dt = gcnew DataTable();
     dt->Columns->Add("_RawID", Int32::typeid);
     dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
+    dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
+    dt->Columns->Add("Produk", String::typeid);
+    dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
     dt->Columns->Add("Alamat Merchant", String::typeid);
 
-    std::vector<TransactionData> transactions = NativeGetPendingDeliveries();
+    // Convert managed string to native
+    std::string nativeCourierType = "regular";
+    if (courierType != nullptr) {
+      IntPtr ptr =
+          Runtime::InteropServices::Marshal::StringToHGlobalAnsi(courierType);
+      nativeCourierType = static_cast<const char *>(ptr.ToPointer());
+      Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+    }
+
+    std::vector<TransactionData> transactions =
+        NativeGetPendingDeliveries(courierID, nativeCourierType);
     for (const auto &trans : transactions) {
       DataRow ^ row = dt->NewRow();
       row["_RawID"] = trans.transID;
       row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
+      row["CustomerID"] = trans.customerID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
+      row["Produk"] = gcnew String(trans.productName.c_str());
+      row["Harga"] = trans.productPrice;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
@@ -2128,7 +2751,10 @@ public:
     dt->Columns->Add("_RawID", Int32::typeid);
     dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
+    dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
+    dt->Columns->Add("Produk", String::typeid);
+    dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
@@ -2141,7 +2767,10 @@ public:
       row["_RawID"] = trans.transID;
       row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
+      row["CustomerID"] = trans.customerID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
+      row["Produk"] = gcnew String(trans.productName.c_str());
+      row["Harga"] = trans.productPrice;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
@@ -2158,7 +2787,10 @@ public:
     dt->Columns->Add("_RawID", Int32::typeid);
     dt->Columns->Add("ID", String::typeid);
     dt->Columns->Add("ProductID", Int32::typeid);
+    dt->Columns->Add("CustomerID", Int32::typeid);
     dt->Columns->Add("Pembeli", String::typeid);
+    dt->Columns->Add("Produk", String::typeid);
+    dt->Columns->Add("Harga", Int32::typeid);
     dt->Columns->Add("Status", String::typeid);
     dt->Columns->Add("Date", String::typeid);
     dt->Columns->Add("Alamat Customer", String::typeid);
@@ -2171,7 +2803,10 @@ public:
       row["_RawID"] = trans.transID;
       row["ID"] = "TRN" + trans.transID;
       row["ProductID"] = trans.productID;
+      row["CustomerID"] = trans.customerID;
       row["Pembeli"] = gcnew String(trans.customerName.c_str());
+      row["Produk"] = gcnew String(trans.productName.c_str());
+      row["Harga"] = trans.productPrice;
       row["Status"] = gcnew String(trans.status.c_str());
       row["Date"] = gcnew String(trans.createdAt.c_str());
       row["Alamat Customer"] = gcnew String(trans.customerAddress.c_str());
@@ -2234,5 +2869,128 @@ public:
     sqlite3_finalize(stmt);
 
     return rc == SQLITE_DONE;
+  }
+
+  // ============ Product Deactivation ============
+
+  static bool DeactivateProduct(int productID, String ^ reason) {
+    std::string nativeReason = "";
+    if (reason != nullptr) {
+      IntPtr ptr =
+          Runtime::InteropServices::Marshal::StringToHGlobalAnsi(reason);
+      nativeReason = static_cast<const char *>(ptr.ToPointer());
+      Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+    }
+    return NativeDeactivateProduct(productID, nativeReason);
+  }
+
+  static bool ActivateProduct(int productID) {
+    return NativeActivateProduct(productID);
+  }
+
+  // ============ Notifications ============
+
+  static DataTable ^ GetNotifications(int userID) {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("Pesan", String::typeid);
+    dt->Columns->Add("Alasan", String::typeid);
+    dt->Columns->Add("Tanggal", String::typeid);
+    dt->Columns->Add("Status", String::typeid);
+
+    std::vector<NotificationData> notifs = NativeGetNotifications(userID);
+    for (const auto &n : notifs) {
+      DataRow ^ row = dt->NewRow();
+      row["Pesan"] = gcnew String(n.message.c_str());
+      row["Alasan"] = gcnew String(n.reason.c_str());
+      row["Tanggal"] = gcnew String(n.createdAt.c_str());
+      row["Status"] = n.isRead ? L"Dibaca" : L"Baru";
+      dt->Rows->Add(row);
+    }
+    return dt;
+  }
+
+  static int GetUnreadNotificationCount(int userID) {
+    std::vector<NotificationData> notifs = NativeGetNotifications(userID);
+    int count = 0;
+    for (const auto &n : notifs) {
+      if (n.isRead == 0)
+        count++;
+    }
+    return count;
+  }
+
+  static bool MarkNotificationsRead(int userID) {
+    return NativeMarkNotificationsRead(userID);
+  }
+
+  // ============ Refund ============
+
+  static bool RefundOrder(int transactionID) {
+    return NativeRefundOrder(transactionID);
+  }
+
+  static bool RequestRefund(int transactionID, int customerID) {
+    return NativeRequestRefund(transactionID, customerID);
+  }
+
+  // ============ Reviews ============
+
+  static bool AddReview(int transactionID, int customerID, int productID,
+                        int rating, String ^ comment) {
+    std::string nativeComment = "";
+    if (comment != nullptr) {
+      IntPtr ptr =
+          Runtime::InteropServices::Marshal::StringToHGlobalAnsi(comment);
+      nativeComment = static_cast<const char *>(ptr.ToPointer());
+      Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+    }
+    return NativeAddReview(transactionID, customerID, productID, rating,
+                           nativeComment);
+  }
+
+  static double GetAverageRating(int productID) {
+    return NativeGetAverageRating(productID);
+  }
+
+  static bool HasReviewed(int transactionID) {
+    return NativeHasReviewed(transactionID);
+  }
+
+  // ============ Order Tracking ============
+
+  static bool AddTrackingEvent(int transactionID, String ^ status,
+                               String ^ description) {
+    std::string nStatus = "";
+    std::string nDesc = "";
+    if (status != nullptr) {
+      IntPtr ptr =
+          Runtime::InteropServices::Marshal::StringToHGlobalAnsi(status);
+      nStatus = static_cast<const char *>(ptr.ToPointer());
+      Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+    }
+    if (description != nullptr) {
+      IntPtr ptr =
+          Runtime::InteropServices::Marshal::StringToHGlobalAnsi(description);
+      nDesc = static_cast<const char *>(ptr.ToPointer());
+      Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+    }
+    return NativeAddTrackingEvent(transactionID, nStatus, nDesc);
+  }
+
+  static DataTable ^ GetOrderTracking(int transactionID) {
+    DataTable ^ dt = gcnew DataTable();
+    dt->Columns->Add("Status", String::typeid);
+    dt->Columns->Add("Keterangan", String::typeid);
+    dt->Columns->Add("Waktu", String::typeid);
+
+    std::vector<TrackingData> tracking = NativeGetOrderTracking(transactionID);
+    for (const auto &t : tracking) {
+      DataRow ^ row = dt->NewRow();
+      row["Status"] = gcnew String(t.status.c_str());
+      row["Keterangan"] = gcnew String(t.description.c_str());
+      row["Waktu"] = gcnew String(t.createdAt.c_str());
+      dt->Rows->Add(row);
+    }
+    return dt;
   }
 };

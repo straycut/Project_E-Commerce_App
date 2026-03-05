@@ -37,6 +37,58 @@ System::Void adminForm::adminForm_Load(System::Object ^ sender,
   LoadTransactions();
   LoadProducts();
   editProductID = 0;
+
+  // === Dynamic Buttons: Products Tab ===
+  btnDeactivateProduct = gcnew Button();
+  btnDeactivateProduct->Text = L"Nonaktifkan";
+  btnDeactivateProduct->BackColor =
+      System::Drawing::Color::FromArgb(211, 47, 47);
+  btnDeactivateProduct->ForeColor = System::Drawing::Color::White;
+  btnDeactivateProduct->FlatStyle = FlatStyle::Flat;
+  btnDeactivateProduct->FlatAppearance->BorderSize = 0;
+  btnDeactivateProduct->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnDeactivateProduct->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnDeactivateProduct->Size = System::Drawing::Size(110, 30);
+  btnDeactivateProduct->Location = System::Drawing::Point(
+      btnDeleteProduct->Right + 10, btnDeleteProduct->Top);
+  btnDeactivateProduct->Click +=
+      gcnew System::EventHandler(this, &adminForm::btnDeactivateProduct_Click);
+  tabProducts->Controls->Add(btnDeactivateProduct);
+
+  btnActivateProduct = gcnew Button();
+  btnActivateProduct->Text = L"Aktifkan";
+  btnActivateProduct->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
+  btnActivateProduct->ForeColor = System::Drawing::Color::White;
+  btnActivateProduct->FlatStyle = FlatStyle::Flat;
+  btnActivateProduct->FlatAppearance->BorderSize = 0;
+  btnActivateProduct->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnActivateProduct->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnActivateProduct->Size = System::Drawing::Size(100, 30);
+  btnActivateProduct->Location = System::Drawing::Point(
+      btnDeactivateProduct->Right + 10, btnDeleteProduct->Top);
+  btnActivateProduct->Click +=
+      gcnew System::EventHandler(this, &adminForm::btnActivateProduct_Click);
+  tabProducts->Controls->Add(btnActivateProduct);
+
+  // === Dynamic Button: Transactions Tab - Refund ===
+  btnRefundTransaction = gcnew Button();
+  btnRefundTransaction->Text = L"Refund";
+  btnRefundTransaction->BackColor =
+      System::Drawing::Color::FromArgb(245, 124, 0);
+  btnRefundTransaction->ForeColor = System::Drawing::Color::White;
+  btnRefundTransaction->FlatStyle = FlatStyle::Flat;
+  btnRefundTransaction->FlatAppearance->BorderSize = 0;
+  btnRefundTransaction->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnRefundTransaction->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnRefundTransaction->Size = System::Drawing::Size(100, 30);
+  btnRefundTransaction->Location = System::Drawing::Point(
+      btnDeleteTransaction->Right + 10, btnDeleteTransaction->Top);
+  btnRefundTransaction->Click +=
+      gcnew System::EventHandler(this, &adminForm::btnRefundTransaction_Click);
+  tabTransactions->Controls->Add(btnRefundTransaction);
 }
 
 void adminForm::LoadDashboardStats() {
@@ -126,8 +178,18 @@ void adminForm::FilterIncome() {
                             ? txtSearchIncome->Text->Trim()->ToLower()
                             : "";
 
-  bool hasFilter =
-      (selectedType != "Semua") || !String::IsNullOrEmpty(searchText);
+  // Map combobox display name to actual DB type value
+  String ^ dbType = "Semua";
+  if (selectedType == "Aplikasi")
+    dbType = "commission";
+  else if (selectedType == "Merchant")
+    dbType = "sale";
+  else if (selectedType == "Courier")
+    dbType = "delivery";
+  else if (selectedType == "Withdrawal")
+    dbType = "withdrawal";
+
+  bool hasFilter = (dbType != "Semua") || !String::IsNullOrEmpty(searchText);
 
   DataTable ^ displayDt = hasFilter ? dt->Clone() : dt;
 
@@ -138,7 +200,7 @@ void adminForm::FilterIncome() {
       String ^ desc = row["Description"]->ToString()->ToLower();
       String ^ id = row["ID"]->ToString()->ToLower();
 
-      bool matchType = selectedType == "Semua" || type == selectedType;
+      bool matchType = dbType == "Semua" || type == dbType;
       bool matchSearch = String::IsNullOrEmpty(searchText) ||
                          username->Contains(searchText) ||
                          desc->Contains(searchText) || id->Contains(searchText);
@@ -418,8 +480,27 @@ System::Void adminForm::btnSaveUser_Click(System::Object ^ sender,
 
     String ^ role = cmbNewRole->SelectedItem->ToString();
 
-    // Register user
-    if (DatabaseManager::RegisterUser(username, password, role)) {
+    // If Courier, ask if Express or Regular
+    bool success = false;
+    if (role == "Courier") {
+      System::Windows::Forms::DialogResult result = MessageBox::Show(
+          "Apakah kurir ini adalah Kurir Express?\n\n"
+          "Express: Ditugaskan langsung oleh customer (ongkir Rp 20.000/toko)\n"
+          "Regular: Mengambil pesanan sendiri (ongkir Rp 10.000/toko)",
+          "Tipe Kurir", MessageBoxButtons::YesNoCancel,
+          MessageBoxIcon::Question);
+      if (result == System::Windows::Forms::DialogResult::Cancel)
+        return;
+      String ^ courierType =
+          (result == System::Windows::Forms::DialogResult::Yes) ? "express"
+                                                                : "regular";
+      success =
+          DatabaseManager::RegisterUser(username, password, role, courierType);
+    } else {
+      success = DatabaseManager::RegisterUser(username, password, role);
+    }
+
+    if (success) {
       MessageBox::Show("User berhasil ditambahkan!", "Sukses",
                        MessageBoxButtons::OK, MessageBoxIcon::Information);
       ClearAddUserForm();
@@ -766,8 +847,168 @@ System::Void adminForm::btnAdminWithdraw_Click(System::Object ^ sender,
                        MessageBoxIcon::Information);
       txtAdminWithdrawAmount->Text = "";
       LoadDashboardStats();
+      LoadIncome();
     } else {
       MessageBox::Show("Gagal melakukan penarikan!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
+}
+
+// Product Deactivation
+System::Void adminForm::btnDeactivateProduct_Click(System::Object ^ sender,
+                                                   System::EventArgs ^ e) {
+  if (dgvProducts->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih produk yang akan dinonaktifkan!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int productID =
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ productName =
+      dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
+  String ^ status =
+      dgvProducts->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (status == "Nonaktif") {
+    MessageBox::Show("Produk sudah nonaktif!", "Info", MessageBoxButtons::OK,
+                     MessageBoxIcon::Information);
+    return;
+  }
+
+  // Dialog for reason
+  Form ^ dialog = gcnew Form();
+  dialog->Text = L"Nonaktifkan Produk";
+  dialog->Size = System::Drawing::Size(400, 220);
+  dialog->StartPosition = FormStartPosition::CenterParent;
+  dialog->FormBorderStyle =
+      System::Windows::Forms::FormBorderStyle::FixedDialog;
+  dialog->MaximizeBox = false;
+  dialog->MinimizeBox = false;
+
+  Label ^ lblInfo = gcnew Label();
+  lblInfo->Text = L"Nonaktifkan produk: " + productName + L"\nMasukkan alasan:";
+  lblInfo->Location = System::Drawing::Point(15, 15);
+  lblInfo->Size = System::Drawing::Size(350, 35);
+  dialog->Controls->Add(lblInfo);
+
+  TextBox ^ txtReason = gcnew TextBox();
+  txtReason->Multiline = true;
+  txtReason->Location = System::Drawing::Point(15, 55);
+  txtReason->Size = System::Drawing::Size(350, 60);
+  dialog->Controls->Add(txtReason);
+
+  Button ^ btnOK = gcnew Button();
+  btnOK->Text = L"Nonaktifkan";
+  btnOK->BackColor = System::Drawing::Color::FromArgb(211, 47, 47);
+  btnOK->ForeColor = System::Drawing::Color::White;
+  btnOK->DialogResult = System::Windows::Forms::DialogResult::OK;
+  btnOK->Location = System::Drawing::Point(15, 130);
+  btnOK->Size = System::Drawing::Size(120, 30);
+  dialog->Controls->Add(btnOK);
+
+  Button ^ btnCancel = gcnew Button();
+  btnCancel->Text = L"Batal";
+  btnCancel->DialogResult = System::Windows::Forms::DialogResult::Cancel;
+  btnCancel->Location = System::Drawing::Point(150, 130);
+  btnCancel->Size = System::Drawing::Size(100, 30);
+  dialog->Controls->Add(btnCancel);
+
+  dialog->AcceptButton = btnOK;
+  dialog->CancelButton = btnCancel;
+
+  if (dialog->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+    String ^ reason = txtReason->Text->Trim();
+    if (String::IsNullOrEmpty(reason))
+      reason = L"Tidak ada keterangan";
+
+    if (DatabaseManager::DeactivateProduct(productID, reason)) {
+      MessageBox::Show("Produk '" + productName +
+                           "' berhasil dinonaktifkan!\nNotifikasi telah "
+                           "dikirim ke merchant.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
+      LoadProducts();
+    } else {
+      MessageBox::Show("Gagal menonaktifkan produk!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
+}
+
+System::Void adminForm::btnActivateProduct_Click(System::Object ^ sender,
+                                                 System::EventArgs ^ e) {
+  if (dgvProducts->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih produk yang akan diaktifkan!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int productID =
+      Convert::ToInt32(dgvProducts->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ productName =
+      dgvProducts->SelectedRows[0]->Cells["Nama"]->Value->ToString();
+  String ^ status =
+      dgvProducts->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (status == "Aktif") {
+    MessageBox::Show("Produk sudah aktif!", "Info", MessageBoxButtons::OK,
+                     MessageBoxIcon::Information);
+    return;
+  }
+
+  if (DatabaseManager::ActivateProduct(productID)) {
+    MessageBox::Show(
+        "Produk '" + productName + "' berhasil diaktifkan kembali!", "Sukses",
+        MessageBoxButtons::OK, MessageBoxIcon::Information);
+    LoadProducts();
+  } else {
+    MessageBox::Show("Gagal mengaktifkan produk!", "Error",
+                     MessageBoxButtons::OK, MessageBoxIcon::Error);
+  }
+}
+
+// Refund transaction
+System::Void adminForm::btnRefundTransaction_Click(System::Object ^ sender,
+                                                   System::EventArgs ^ e) {
+  if (dgvTransactions->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih transaksi yang akan di-refund!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transID = Convert::ToInt32(
+      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ currentStatus =
+      dgvTransactions->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (currentStatus != "shipping" && currentStatus != "delivered" &&
+      currentStatus != "refund_requested") {
+    MessageBox::Show(
+        "Refund hanya bisa dilakukan untuk transaksi dengan status:\n"
+        "'shipping', 'delivered', atau 'refund_requested'.\n\n"
+        "Status saat ini: " +
+            currentStatus,
+        "Tidak Bisa Refund", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (MessageBox::Show("Refund transaksi ID: " + transID +
+                           "?\n\nSaldo customer akan dikembalikan.\n"
+                           "Pendapatan merchant & kurir akan ditarik kembali.",
+                       "Konfirmasi Refund", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
+    if (DatabaseManager::RefundOrder(transID)) {
+      MessageBox::Show(
+          "Refund berhasil!\n\nSaldo customer telah dikembalikan.\n"
+          "Notifikasi telah dikirim ke merchant.",
+          "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
+      LoadTransactions();
+      LoadDashboardStats();
+    } else {
+      MessageBox::Show("Gagal melakukan refund!", "Error",
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }

@@ -15,6 +15,8 @@ public:
 
   // User authentication
   static bool RegisterUser(String ^ username, String ^ password, String ^ role);
+  static bool RegisterUser(String ^ username, String ^ password, String ^ role,
+                           String ^ courierType);
   static bool ValidateUser(String ^ username, String ^ password,
                            String ^ % outRole, int % outUserID, int % outSaldo,
                            int % outIsActive);
@@ -61,18 +63,46 @@ public:
   static bool UpdateUserSaldo(int userID, int newSaldo);
   static bool TopUpSaldo(int userID, int amount);
   static bool PurchaseProduct(int productID, int customerID, bool chargeOngkir);
+  static bool PurchaseProduct(int productID, int customerID, bool chargeOngkir,
+                              String ^ shippingType, int courierID);
+  static DataTable ^ GetExpressCouriers();
   static DataTable ^ GetTransactionsByCustomer(int customerID);
   static bool ConfirmDelivery(int transactionID, int customerID);
   static bool WithdrawSaldo(int userID, int amount);
   static bool CancelOrder(int transactionID, int customerID);
 
   // ============ Courier Functions ============
-  static DataTable ^ GetPendingDeliveries();
+  static String ^ GetUserCourierType(int userID);
+  static DataTable ^ GetPendingDeliveries(int courierID, String ^ courierType);
   static DataTable ^ GetActiveDeliveries(int courierID);
   static DataTable ^ GetDeliveryHistory(int courierID);
   static bool ClaimDelivery(int transactionID, int courierID);
   static bool CompleteDelivery(int transactionID, int courierID);
   static array<int> ^ GetCourierStats(int courierID);
+
+  // ============ Product Deactivation ============
+  static bool DeactivateProduct(int productID, String ^ reason);
+  static bool ActivateProduct(int productID);
+
+  // ============ Notifications ============
+  static DataTable ^ GetNotifications(int userID);
+  static int GetUnreadNotificationCount(int userID);
+  static bool MarkNotificationsRead(int userID);
+
+  // ============ Refund ============
+  static bool RefundOrder(int transactionID);
+  static bool RequestRefund(int transactionID, int customerID);
+
+  // ============ Reviews ============
+  static bool AddReview(int transactionID, int customerID, int productID,
+                        int rating, String ^ comment);
+  static double GetAverageRating(int productID);
+  static bool HasReviewed(int transactionID);
+
+  // ============ Order Tracking ============
+  static bool AddTrackingEvent(int transactionID, String ^ status,
+                               String ^ description);
+  static DataTable ^ GetOrderTracking(int transactionID);
 
   // Admin transaction management
   static bool DeleteTransaction(int transactionID);

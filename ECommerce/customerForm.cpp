@@ -38,6 +38,57 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
   // Hide MerchantID column in cart
   if (dgvCart->Columns["MerchantID"])
     dgvCart->Columns["MerchantID"]->Visible = false;
+
+  // === Dynamic Button: History Tab - Ajukan Refund ===
+  btnRequestRefund = gcnew Button();
+  btnRequestRefund->Text = L"Ajukan Refund";
+  btnRequestRefund->BackColor = System::Drawing::Color::FromArgb(245, 124, 0);
+  btnRequestRefund->ForeColor = System::Drawing::Color::White;
+  btnRequestRefund->FlatStyle = FlatStyle::Flat;
+  btnRequestRefund->FlatAppearance->BorderSize = 0;
+  btnRequestRefund->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnRequestRefund->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnRequestRefund->Size = System::Drawing::Size(120, 30);
+  btnRequestRefund->Location =
+      System::Drawing::Point(btnCancelOrder->Right + 10, btnCancelOrder->Top);
+  btnRequestRefund->Click +=
+      gcnew System::EventHandler(this, &customerForm::btnRequestRefund_Click);
+  tabHistory->Controls->Add(btnRequestRefund);
+
+  // === Dynamic Button: Beri Rating ===
+  btnGiveRating = gcnew Button();
+  btnGiveRating->Text = L"Beri Rating";
+  btnGiveRating->BackColor = System::Drawing::Color::FromArgb(255, 193, 7);
+  btnGiveRating->ForeColor = System::Drawing::Color::Black;
+  btnGiveRating->FlatStyle = FlatStyle::Flat;
+  btnGiveRating->FlatAppearance->BorderSize = 0;
+  btnGiveRating->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnGiveRating->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnGiveRating->Size = System::Drawing::Size(110, 30);
+  btnGiveRating->Location =
+      System::Drawing::Point(btnRequestRefund->Right + 10, btnCancelOrder->Top);
+  btnGiveRating->Click +=
+      gcnew System::EventHandler(this, &customerForm::btnGiveRating_Click);
+  tabHistory->Controls->Add(btnGiveRating);
+
+  // === Dynamic Button: Lacak Pesanan ===
+  btnTrackOrder = gcnew Button();
+  btnTrackOrder->Text = L"Lacak Pesanan";
+  btnTrackOrder->BackColor = System::Drawing::Color::FromArgb(33, 150, 243);
+  btnTrackOrder->ForeColor = System::Drawing::Color::White;
+  btnTrackOrder->FlatStyle = FlatStyle::Flat;
+  btnTrackOrder->FlatAppearance->BorderSize = 0;
+  btnTrackOrder->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+  btnTrackOrder->Cursor = System::Windows::Forms::Cursors::Hand;
+  btnTrackOrder->Size = System::Drawing::Size(120, 30);
+  btnTrackOrder->Location =
+      System::Drawing::Point(btnGiveRating->Right + 10, btnCancelOrder->Top);
+  btnTrackOrder->Click +=
+      gcnew System::EventHandler(this, &customerForm::btnTrackOrder_Click);
+  tabHistory->Controls->Add(btnTrackOrder);
 }
 
 System::Void
@@ -53,6 +104,18 @@ customerForm::tabControl_SelectedIndexChanged(System::Object ^ sender,
     LoadSaldo();
   } else if (tabControl->SelectedTab == tabCart) {
     LoadSaldo();
+    // Load address into checkout
+    String ^ alamat = DatabaseManager::GetUserAddress(currentUserID);
+    txtAlamatCheckout->Text = alamat;
+    // Update saldo display
+    lblSaldoCheckout->Text =
+        L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
+    // Update badge
+    if (cartTable->Rows->Count > 0)
+      tabCart->Text = L"Checkout (" + cartTable->Rows->Count + L")";
+    else
+      tabCart->Text = L"Checkout";
+    UpdateCartTotal();
   }
 }
 
@@ -72,6 +135,8 @@ void customerForm::LoadHistory() {
       DatabaseManager::GetTransactionsByCustomer(currentUserID);
   if (dgvHistory->Columns["_RawID"] != nullptr)
     dgvHistory->Columns["_RawID"]->Visible = false;
+  if (dgvHistory->Columns["_RawProductID"] != nullptr)
+    dgvHistory->Columns["_RawProductID"]->Visible = false;
 }
 
 void customerForm::FilterProducts(String ^ keyword) {
@@ -202,9 +267,26 @@ void customerForm::UpdateCartTotal() {
     if (!merchantSet->Contains(mid))
       merchantSet->Add(mid);
   }
-  int ongkir = merchantSet->Count * 10000;
+  int ongkirRate = rbExpress->Checked ? 20000 : 10000;
+  int ongkir = merchantSet->Count * ongkirRate;
   int grandTotal = subtotal + ongkir;
   lblCartTotal->Text = L"Total: Rp " + String::Format("{0:N0}", grandTotal);
+
+  // Update summary panel labels
+  lblSubtotal->Text = L"Subtotal: Rp " + String::Format("{0:N0}", subtotal);
+  lblOngkir->Text = L"Ongkir (" + merchantSet->Count + L" toko x Rp " +
+                    String::Format("{0:N0}", ongkirRate) + L"): Rp " +
+                    String::Format("{0:N0}", ongkir);
+  lblGrandTotal->Text =
+      L"Grand Total: Rp " + String::Format("{0:N0}", grandTotal);
+  lblSaldoCheckout->Text =
+      L"Saldo: Rp " + String::Format("{0:N0}", currentSaldo);
+
+  // Update tab badge
+  if (cartTable->Rows->Count > 0)
+    tabCart->Text = L"Checkout (" + cartTable->Rows->Count + L")";
+  else
+    tabCart->Text = L"Checkout";
 }
 
 System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
@@ -213,6 +295,35 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
     MessageBox::Show("Keranjang masih kosong!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
+  }
+
+  // Validate address
+  if (String::IsNullOrWhiteSpace(txtAlamatCheckout->Text)) {
+    MessageBox::Show("Alamat pengiriman harus diisi!\nSilakan isi alamat di "
+                     "panel sebelah kanan.",
+                     "Alamat Kosong", MessageBoxButtons::OK,
+                     MessageBoxIcon::Warning);
+    txtAlamatCheckout->Focus();
+    return;
+  }
+
+  // Validate express courier selection
+  bool isExpress = rbExpress->Checked;
+  int expressCourierID = 0;
+  String ^ shippingType = isExpress ? "express" : "regular";
+
+  if (isExpress) {
+    if (cmbExpressCourier->SelectedIndex < 0) {
+      MessageBox::Show("Silakan pilih kurir express terlebih dahulu!",
+                       "Kurir Express", MessageBoxButtons::OK,
+                       MessageBoxIcon::Warning);
+      return;
+    }
+    DataTable ^ courierDt = DatabaseManager::GetExpressCouriers();
+    if (cmbExpressCourier->SelectedIndex < courierDt->Rows->Count) {
+      expressCourierID = Convert::ToInt32(
+          courierDt->Rows[cmbExpressCourier->SelectedIndex]["ID"]);
+    }
   }
 
   // Calculate total
@@ -227,7 +338,8 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
     if (!merchantSet->Contains(mid))
       merchantSet->Add(mid);
   }
-  int ongkir = merchantSet->Count * 10000;
+  int ongkirRate = isExpress ? 20000 : 10000;
+  int ongkir = merchantSet->Count * ongkirRate;
   int grandTotal = totalHarga + ongkir;
 
   // Check saldo (harga + ongkir)
@@ -243,15 +355,21 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
     return;
   }
 
+  String ^ pengirimanStr = isExpress ? "Express" : "Regular";
   if (MessageBox::Show("Checkout " + cartTable->Rows->Count.ToString() +
                            " item?\n\nSubtotal: Rp " +
                            String::Format("{0:N0}", totalHarga) + "\nOngkir (" +
-                           merchantSet->Count + " toko x Rp 10.000): Rp " +
+                           merchantSet->Count + " toko x Rp " +
+                           String::Format("{0:N0}", ongkirRate) + "): Rp " +
                            String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
-                           String::Format("{0:N0}", grandTotal),
+                           String::Format("{0:N0}", grandTotal) +
+                           "\nPengiriman: " + pengirimanStr,
                        "Konfirmasi Checkout", MessageBoxButtons::YesNo,
                        MessageBoxIcon::Question) ==
       System::Windows::Forms::DialogResult::Yes) {
+
+    // Save address
+    DatabaseManager::UpdateUserAddress(currentUserID, txtAlamatCheckout->Text);
 
     // Track which merchants have already been charged ongkir
     System::Collections::Generic::List<int> ^ chargedMerchants =
@@ -267,8 +385,16 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
       for (int j = 0; j < jumlah; j++) {
         // Charge ongkir only on first item of each merchant
         bool chargeOngkir = !chargedMerchants->Contains(merchantID);
-        if (!DatabaseManager::PurchaseProduct(productID, currentUserID,
-                                              chargeOngkir)) {
+        bool success;
+        if (isExpress && expressCourierID > 0) {
+          success = DatabaseManager::PurchaseProduct(productID, currentUserID,
+                                                     chargeOngkir, shippingType,
+                                                     expressCourierID);
+        } else {
+          success = DatabaseManager::PurchaseProduct(productID, currentUserID,
+                                                     chargeOngkir);
+        }
+        if (!success) {
           allSuccess = false;
           break;
         }
@@ -284,8 +410,8 @@ System::Void customerForm::btnCheckout_Click(System::Object ^ sender,
           "Checkout berhasil!\n\nSubtotal: Rp " +
               String::Format("{0:N0}", totalHarga) + "\nOngkir: Rp " +
               String::Format("{0:N0}", ongkir) + "\nTotal: Rp " +
-              String::Format("{0:N0}", grandTotal) +
-              "\n\nPesanan Anda akan segera diproses.",
+              String::Format("{0:N0}", grandTotal) + "\nPengiriman: " +
+              pengirimanStr + "\n\nPesanan Anda akan segera diproses.",
           "Sukses", MessageBoxButtons::OK, MessageBoxIcon::Information);
       cartTable->Rows->Clear();
       UpdateCartTotal();
@@ -470,6 +596,228 @@ System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }
+}
+
+void customerForm::LoadExpressCouriers() {
+  cmbExpressCourier->Items->Clear();
+  DataTable ^ dt = DatabaseManager::GetExpressCouriers();
+  for (int i = 0; i < dt->Rows->Count; i++) {
+    cmbExpressCourier->Items->Add(dt->Rows[i]["Username"]->ToString());
+  }
+  if (cmbExpressCourier->Items->Count > 0)
+    cmbExpressCourier->SelectedIndex = 0;
+}
+
+System::Void customerForm::rbExpress_CheckedChanged(System::Object ^ sender,
+                                                    System::EventArgs ^ e) {
+  bool showExpress = rbExpress->Checked;
+  lblPilihKurir->Visible = showExpress;
+  cmbExpressCourier->Visible = showExpress;
+  if (showExpress) {
+    LoadExpressCouriers();
+  }
+  UpdateCartTotal();
+}
+
+System::Void customerForm::btnRequestRefund_Click(System::Object ^ sender,
+                                                  System::EventArgs ^ e) {
+  if (dgvHistory->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih pesanan yang ingin di-refund!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transactionID =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ status =
+      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (status != "shipping") {
+    MessageBox::Show(
+        "Refund hanya bisa diajukan untuk pesanan dengan status 'shipping'.\n\n"
+        "Status pesanan ini: " +
+            status,
+        "Tidak Dapat Refund", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (MessageBox::Show("Ajukan refund untuk pesanan ini?\n\n"
+                       "Admin akan memproses permintaan refund Anda.",
+                       "Konfirmasi Refund", MessageBoxButtons::YesNo,
+                       MessageBoxIcon::Question) ==
+      System::Windows::Forms::DialogResult::Yes) {
+    if (DatabaseManager::RequestRefund(transactionID, currentUserID)) {
+      MessageBox::Show("Permintaan refund berhasil diajukan!\n\n"
+                       "Admin akan segera memproses permintaan Anda.",
+                       "Sukses", MessageBoxButtons::OK,
+                       MessageBoxIcon::Information);
+      LoadHistory();
+    } else {
+      MessageBox::Show("Gagal mengajukan refund!", "Error",
+                       MessageBoxButtons::OK, MessageBoxIcon::Error);
+    }
+  }
+}
+
+// Rating
+System::Void customerForm::btnGiveRating_Click(System::Object ^ sender,
+                                               System::EventArgs ^ e) {
+  if (dgvHistory->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih pesanan untuk memberi rating!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transID =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ status =
+      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  if (status != "delivered" && status != "received") {
+    MessageBox::Show(
+        "Rating hanya bisa diberikan untuk pesanan yang sudah diterima!",
+        "Info", MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  if (DatabaseManager::HasReviewed(transID)) {
+    MessageBox::Show("Anda sudah memberikan rating untuk pesanan ini!", "Info",
+                     MessageBoxButtons::OK, MessageBoxIcon::Information);
+    return;
+  }
+
+  int productID = Convert::ToInt32(
+      dgvHistory->SelectedRows[0]->Cells["_RawProductID"]->Value);
+
+  // Rating dialog
+  Form ^ dialog = gcnew Form();
+  dialog->Text = L"Beri Rating";
+  dialog->Size = System::Drawing::Size(350, 250);
+  dialog->StartPosition = FormStartPosition::CenterParent;
+  dialog->FormBorderStyle =
+      System::Windows::Forms::FormBorderStyle::FixedDialog;
+  dialog->MaximizeBox = false;
+  dialog->MinimizeBox = false;
+
+  Label ^ lblRate = gcnew Label();
+  lblRate->Text = L"Rating (1-5 bintang):";
+  lblRate->Location = System::Drawing::Point(15, 15);
+  lblRate->AutoSize = true;
+  dialog->Controls->Add(lblRate);
+
+  NumericUpDown ^ nudRating = gcnew NumericUpDown();
+  nudRating->Minimum = 1;
+  nudRating->Maximum = 5;
+  nudRating->Value = 5;
+  nudRating->Location = System::Drawing::Point(15, 40);
+  nudRating->Size = System::Drawing::Size(60, 25);
+  dialog->Controls->Add(nudRating);
+
+  Label ^ lblComment = gcnew Label();
+  lblComment->Text = L"Komentar:";
+  lblComment->Location = System::Drawing::Point(15, 75);
+  lblComment->AutoSize = true;
+  dialog->Controls->Add(lblComment);
+
+  TextBox ^ txtComment = gcnew TextBox();
+  txtComment->Multiline = true;
+  txtComment->Location = System::Drawing::Point(15, 95);
+  txtComment->Size = System::Drawing::Size(300, 60);
+  dialog->Controls->Add(txtComment);
+
+  Button ^ btnOK = gcnew Button();
+  btnOK->Text = L"Kirim Rating";
+  btnOK->BackColor = System::Drawing::Color::FromArgb(255, 193, 7);
+  btnOK->DialogResult = System::Windows::Forms::DialogResult::OK;
+  btnOK->Location = System::Drawing::Point(15, 170);
+  btnOK->Size = System::Drawing::Size(120, 30);
+  dialog->Controls->Add(btnOK);
+
+  Button ^ btnCancel = gcnew Button();
+  btnCancel->Text = L"Batal";
+  btnCancel->DialogResult = System::Windows::Forms::DialogResult::Cancel;
+  btnCancel->Location = System::Drawing::Point(150, 170);
+  btnCancel->Size = System::Drawing::Size(100, 30);
+  dialog->Controls->Add(btnCancel);
+
+  dialog->AcceptButton = btnOK;
+  dialog->CancelButton = btnCancel;
+
+  if (dialog->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
+    int rating = Convert::ToInt32(nudRating->Value);
+    if (DatabaseManager::AddReview(transID, currentUserID, productID, rating,
+                                   txtComment->Text)) {
+      MessageBox::Show("Rating berhasil dikirim! Terima kasih.", "Sukses",
+                       MessageBoxButtons::OK, MessageBoxIcon::Information);
+    } else {
+      MessageBox::Show("Gagal mengirim rating!", "Error", MessageBoxButtons::OK,
+                       MessageBoxIcon::Error);
+    }
+  }
+}
+
+// Tracking
+System::Void customerForm::btnTrackOrder_Click(System::Object ^ sender,
+                                               System::EventArgs ^ e) {
+  if (dgvHistory->SelectedRows->Count == 0) {
+    MessageBox::Show("Pilih pesanan untuk melacak!", "Peringatan",
+                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+    return;
+  }
+
+  int transID =
+      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
+  String ^ status =
+      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+
+  DataTable ^ tracking = DatabaseManager::GetOrderTracking(transID);
+
+  // Dialog with DataGridView
+  Form ^ dialog = gcnew Form();
+  dialog->Text = L"Lacak Pesanan #" + transID;
+  dialog->Size = System::Drawing::Size(500, 350);
+  dialog->StartPosition = FormStartPosition::CenterParent;
+  dialog->FormBorderStyle =
+      System::Windows::Forms::FormBorderStyle::FixedDialog;
+  dialog->MaximizeBox = false;
+  dialog->MinimizeBox = false;
+
+  Label ^ lblStatus = gcnew Label();
+  lblStatus->Text = L"Status saat ini: " + status;
+  lblStatus->Font = gcnew System::Drawing::Font(
+      L"Segoe UI", 12, System::Drawing::FontStyle::Bold);
+  lblStatus->Location = System::Drawing::Point(15, 15);
+  lblStatus->AutoSize = true;
+  dialog->Controls->Add(lblStatus);
+
+  if (tracking->Rows->Count == 0) {
+    Label ^ lblEmpty = gcnew Label();
+    lblEmpty->Text = L"Belum ada data pelacakan untuk pesanan ini.";
+    lblEmpty->Location = System::Drawing::Point(15, 50);
+    lblEmpty->AutoSize = true;
+    dialog->Controls->Add(lblEmpty);
+  } else {
+    DataGridView ^ dgv = gcnew DataGridView();
+    dgv->DataSource = tracking;
+    dgv->Location = System::Drawing::Point(15, 50);
+    dgv->Size = System::Drawing::Size(455, 230);
+    dgv->AllowUserToAddRows = false;
+    dgv->ReadOnly = true;
+    dgv->AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode::Fill;
+    dgv->SelectionMode = DataGridViewSelectionMode::FullRowSelect;
+    dgv->BackgroundColor = System::Drawing::Color::White;
+    dialog->Controls->Add(dgv);
+  }
+
+  Button ^ btnClose = gcnew Button();
+  btnClose->Text = L"Tutup";
+  btnClose->DialogResult = System::Windows::Forms::DialogResult::Cancel;
+  btnClose->Location = System::Drawing::Point(15, 285);
+  btnClose->Size = System::Drawing::Size(100, 30);
+  dialog->Controls->Add(btnClose);
+  dialog->CancelButton = btnClose;
+
+  dialog->ShowDialog();
 }
 
 } // namespace ECommerce

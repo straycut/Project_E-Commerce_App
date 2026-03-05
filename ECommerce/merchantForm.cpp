@@ -37,6 +37,49 @@ System::Void merchantForm::merchantForm_Load(System::Object ^ sender,
   LoadProducts();
   LoadSales();
   LoadProfile();
+
+  // === Dynamic Tab: Notifikasi ===
+  tabNotifikasi = gcnew TabPage();
+  tabNotifikasi->Text = L"Notifikasi";
+  tabNotifikasi->UseVisualStyleBackColor = true;
+
+  dgvNotifikasi = gcnew DataGridView();
+  dgvNotifikasi->Location = System::Drawing::Point(10, 15);
+  dgvNotifikasi->Size = System::Drawing::Size(832, 420);
+  dgvNotifikasi->AllowUserToAddRows = false;
+  dgvNotifikasi->AllowUserToDeleteRows = false;
+  dgvNotifikasi->ReadOnly = true;
+  dgvNotifikasi->SelectionMode = DataGridViewSelectionMode::FullRowSelect;
+  dgvNotifikasi->AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode::Fill;
+  dgvNotifikasi->BackgroundColor = System::Drawing::Color::White;
+  dgvNotifikasi->BorderStyle = System::Windows::Forms::BorderStyle::None;
+  dgvNotifikasi->EnableHeadersVisualStyles = false;
+  dgvNotifikasi->ColumnHeadersDefaultCellStyle->BackColor =
+      System::Drawing::Color::FromArgb(46, 125, 50);
+  dgvNotifikasi->ColumnHeadersDefaultCellStyle->ForeColor =
+      System::Drawing::Color::White;
+  dgvNotifikasi->ColumnHeadersDefaultCellStyle->Font =
+      gcnew System::Drawing::Font(L"Segoe UI", 10,
+                                  System::Drawing::FontStyle::Bold);
+  dgvNotifikasi->DefaultCellStyle->Font =
+      gcnew System::Drawing::Font(L"Segoe UI", 9);
+  dgvNotifikasi->DefaultCellStyle->WrapMode = DataGridViewTriState::True;
+  dgvNotifikasi->AutoSizeRowsMode = DataGridViewAutoSizeRowsMode::AllCells;
+  dgvNotifikasi->ColumnHeadersHeight = 36;
+  dgvNotifikasi->RowTemplate->Height = 32;
+
+  tabNotifikasi->Controls->Add(dgvNotifikasi);
+  tabControl->Controls->Add(tabNotifikasi);
+
+  LoadNotifikasi();
+
+  // Auto-switch to notification tab if there are unread notifications
+  int unreadCount = DatabaseManager::GetUnreadNotificationCount(currentUserID);
+  if (unreadCount > 0) {
+    tabControl->SelectedTab = tabNotifikasi;
+    DatabaseManager::MarkNotificationsRead(currentUserID);
+    tabNotifikasi->Text = L"Notifikasi";
+  }
 }
 
 void merchantForm::LoadDashboard() {
@@ -311,6 +354,18 @@ System::Void merchantForm::btnWithdraw_Click(System::Object ^ sender,
       MessageBox::Show("Gagal melakukan penarikan!", "Error",
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
+  }
+}
+
+void merchantForm::LoadNotifikasi() {
+  DataTable ^ dt = DatabaseManager::GetNotifications(currentUserID);
+  dgvNotifikasi->DataSource = dt;
+
+  int unread = DatabaseManager::GetUnreadNotificationCount(currentUserID);
+  if (unread > 0) {
+    tabNotifikasi->Text = L"Notifikasi (" + unread + L")";
+  } else {
+    tabNotifikasi->Text = L"Notifikasi";
   }
 }
 
