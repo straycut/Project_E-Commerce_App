@@ -9,7 +9,7 @@ System::Void merchantForm::merchantForm_Load(System::Object ^ sender,
   editProductID = 0;
 
   // Apply DGV theming
-  array<DataGridView ^> ^ grids = {dgvProducts, dgvSales};
+  array<DataGridView ^> ^ grids = {dgvProducts};
   for each (DataGridView ^ dgv in grids) {
     dgv->BackgroundColor = System::Drawing::Color::White;
     dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
@@ -108,10 +108,143 @@ void merchantForm::LoadProducts() {
 }
 
 void merchantForm::LoadSales() {
-  dgvSales->DataSource =
-      DatabaseManager::GetTransactionsByMerchant(currentUserID);
-  if (dgvSales->Columns["_RawID"] != nullptr)
-    dgvSales->Columns["_RawID"]->Visible = false;
+  DataTable ^ dt = DatabaseManager::GetTransactionsByMerchant(currentUserID);
+
+  flpSales->Controls->Clear();
+
+  if (dt->Rows->Count == 0) {
+    Label ^ lblEmpty = gcnew Label();
+    lblEmpty->Text = L"Belum ada riwayat penjualan.";
+    lblEmpty->Font = gcnew System::Drawing::Font(L"Segoe UI", 12);
+    lblEmpty->ForeColor = System::Drawing::Color::Gray;
+    lblEmpty->AutoSize = true;
+    lblEmpty->Padding = System::Windows::Forms::Padding(10, 20, 0, 0);
+    flpSales->Controls->Add(lblEmpty);
+    return;
+  }
+
+  int cardWidth = flpSales->Width - 30;
+
+  // Group by Pembeli
+  System::Collections::Generic::Dictionary<
+      String ^, System::Collections::Generic::List<int> ^> ^
+      groups =
+      gcnew System::Collections::Generic::Dictionary<
+          String ^, System::Collections::Generic::List<int> ^>();
+  System::Collections::Generic::List<String ^> ^ groupOrder =
+      gcnew System::Collections::Generic::List<String ^>();
+
+  for (int i = 0; i < dt->Rows->Count; i++) {
+    String ^ customer = dt->Rows[i]["Pembeli"]->ToString();
+    if (!groups->ContainsKey(customer)) {
+      groups[customer] = gcnew System::Collections::Generic::List<int>();
+      groupOrder->Add(customer);
+    }
+    groups[customer]->Add(i);
+  }
+
+  for (int g = 0; g < groupOrder->Count; g++) {
+    String ^ customer = groupOrder[g];
+    System::Collections::Generic::List<int> ^ rowIndices = groups[customer];
+    int itemCount = rowIndices->Count;
+
+    // === Card Panel ===
+    Panel ^ card = gcnew Panel();
+    card->Width = cardWidth;
+    card->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+    card->BackColor = System::Drawing::Color::White;
+    card->Margin = System::Windows::Forms::Padding(3, 3, 3, 8);
+
+    int yPos = 0;
+
+    // === Header bar ===
+    String ^ alamatPembeli =
+        dt->Rows[rowIndices[0]]["Alamat Pembeli"]->ToString();
+
+    Panel ^ header = gcnew Panel();
+    header->Dock = DockStyle::Top;
+    header->Height = 42;
+    header->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
+
+    Label ^ lblCustName = gcnew Label();
+    lblCustName->Text =
+        L"Pembeli: " + customer + L" (" + itemCount + L" pesanan)";
+    lblCustName->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold);
+    lblCustName->ForeColor = System::Drawing::Color::White;
+    lblCustName->Location = System::Drawing::Point(10, 2);
+    lblCustName->AutoSize = true;
+    header->Controls->Add(lblCustName);
+
+    Label ^ lblAddr = gcnew Label();
+    lblAddr->Text = alamatPembeli;
+    lblAddr->Font = gcnew System::Drawing::Font(L"Segoe UI", 8);
+    lblAddr->ForeColor = System::Drawing::Color::FromArgb(200, 230, 201);
+    lblAddr->Location = System::Drawing::Point(10, 22);
+    lblAddr->AutoSize = true;
+    header->Controls->Add(lblAddr);
+
+    card->Controls->Add(header);
+    yPos = 48;
+
+    // Calculate group total
+    int groupTotal = 0;
+    for (int r = 0; r < rowIndices->Count; r++) {
+      groupTotal += Convert::ToInt32(dt->Rows[rowIndices[r]]["Harga"]);
+    }
+
+    // === Item rows (26px each) ===
+    for (int r = 0; r < rowIndices->Count; r++) {
+      int idx = rowIndices[r];
+      String ^ produk = dt->Rows[idx]["Produk"]->ToString();
+      int harga = Convert::ToInt32(dt->Rows[idx]["Harga"]);
+
+      Panel ^ itemRow = gcnew Panel();
+      itemRow->Location = System::Drawing::Point(0, yPos);
+      itemRow->Size = System::Drawing::Size(cardWidth - 2, 26);
+      if (r % 2 == 1)
+        itemRow->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
+
+      Label ^ lblProd = gcnew Label();
+      lblProd->Text = L"  \x2022 " + produk;
+      lblProd->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblProd->Location = System::Drawing::Point(8, 4);
+      lblProd->AutoSize = true;
+      itemRow->Controls->Add(lblProd);
+
+      Label ^ lblPrice = gcnew Label();
+      lblPrice->Text = L"Rp " + String::Format("{0:N0}", harga);
+      lblPrice->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblPrice->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+      lblPrice->Location = System::Drawing::Point(cardWidth - 150, 4);
+      lblPrice->AutoSize = true;
+      itemRow->Controls->Add(lblPrice);
+
+      card->Controls->Add(itemRow);
+      yPos += 26;
+    }
+
+    // === Footer ===
+    Panel ^ footer = gcnew Panel();
+    footer->Location = System::Drawing::Point(0, yPos);
+    footer->Size = System::Drawing::Size(cardWidth - 2, 40);
+    footer->BackColor = System::Drawing::Color::FromArgb(245, 245, 245);
+
+    Label ^ lblTotal = gcnew Label();
+    lblTotal->Text = L"Total: Rp " + String::Format("{0:N0}", groupTotal);
+    lblTotal->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    lblTotal->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+    lblTotal->Location = System::Drawing::Point(10, 10);
+    lblTotal->AutoSize = true;
+    footer->Controls->Add(lblTotal);
+
+    card->Controls->Add(footer);
+    yPos += 40;
+
+    card->Height = yPos;
+    flpSales->Controls->Add(card);
+  }
 }
 
 void merchantForm::ClearProductForm() {

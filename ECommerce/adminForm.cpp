@@ -6,8 +6,7 @@ namespace ECommerce {
 System::Void adminForm::adminForm_Load(System::Object ^ sender,
                                        System::EventArgs ^ e) {
   // Apply DGV theming
-  array<DataGridView ^> ^
-      grids = {dgvUsers, dgvIncome, dgvTransactions, dgvProducts};
+  array<DataGridView ^> ^ grids = {dgvUsers, dgvProducts, dgvFrequentProducts};
   for each (DataGridView ^ dgv in grids) {
     dgv->BackgroundColor = System::Drawing::Color::White;
     dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
@@ -37,58 +36,6 @@ System::Void adminForm::adminForm_Load(System::Object ^ sender,
   LoadTransactions();
   LoadProducts();
   editProductID = 0;
-
-  // === Dynamic Buttons: Products Tab ===
-  btnDeactivateProduct = gcnew Button();
-  btnDeactivateProduct->Text = L"Nonaktifkan";
-  btnDeactivateProduct->BackColor =
-      System::Drawing::Color::FromArgb(211, 47, 47);
-  btnDeactivateProduct->ForeColor = System::Drawing::Color::White;
-  btnDeactivateProduct->FlatStyle = FlatStyle::Flat;
-  btnDeactivateProduct->FlatAppearance->BorderSize = 0;
-  btnDeactivateProduct->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnDeactivateProduct->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnDeactivateProduct->Size = System::Drawing::Size(110, 30);
-  btnDeactivateProduct->Location = System::Drawing::Point(
-      btnDeleteProduct->Right + 10, btnDeleteProduct->Top);
-  btnDeactivateProduct->Click +=
-      gcnew System::EventHandler(this, &adminForm::btnDeactivateProduct_Click);
-  tabProducts->Controls->Add(btnDeactivateProduct);
-
-  btnActivateProduct = gcnew Button();
-  btnActivateProduct->Text = L"Aktifkan";
-  btnActivateProduct->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
-  btnActivateProduct->ForeColor = System::Drawing::Color::White;
-  btnActivateProduct->FlatStyle = FlatStyle::Flat;
-  btnActivateProduct->FlatAppearance->BorderSize = 0;
-  btnActivateProduct->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnActivateProduct->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnActivateProduct->Size = System::Drawing::Size(100, 30);
-  btnActivateProduct->Location = System::Drawing::Point(
-      btnDeactivateProduct->Right + 10, btnDeleteProduct->Top);
-  btnActivateProduct->Click +=
-      gcnew System::EventHandler(this, &adminForm::btnActivateProduct_Click);
-  tabProducts->Controls->Add(btnActivateProduct);
-
-  // === Dynamic Button: Transactions Tab - Refund ===
-  btnRefundTransaction = gcnew Button();
-  btnRefundTransaction->Text = L"Refund";
-  btnRefundTransaction->BackColor =
-      System::Drawing::Color::FromArgb(245, 124, 0);
-  btnRefundTransaction->ForeColor = System::Drawing::Color::White;
-  btnRefundTransaction->FlatStyle = FlatStyle::Flat;
-  btnRefundTransaction->FlatAppearance->BorderSize = 0;
-  btnRefundTransaction->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnRefundTransaction->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnRefundTransaction->Size = System::Drawing::Size(100, 30);
-  btnRefundTransaction->Location = System::Drawing::Point(
-      btnDeleteTransaction->Right + 10, btnDeleteTransaction->Top);
-  btnRefundTransaction->Click +=
-      gcnew System::EventHandler(this, &adminForm::btnRefundTransaction_Click);
-  tabTransactions->Controls->Add(btnRefundTransaction);
 }
 
 void adminForm::LoadDashboardStats() {
@@ -159,6 +106,27 @@ System::Void adminForm::txtSearchUser_TextChanged(System::Object ^ sender,
 }
 
 System::Void
+adminForm::TransactionRadioButton_CheckedChanged(System::Object ^ sender,
+                                                 System::EventArgs ^ e) {
+  RadioButton ^ rb = safe_cast<RadioButton ^>(sender);
+  if (rb->Checked) {
+    for each (Control ^ card in flpTransactions->Controls) {
+      if (card->GetType() == Panel::typeid) {
+        for each (Control ^ inner in card->Controls) {
+          if (inner->GetType() == Panel::typeid) {
+            for each (Control ^ ctrl in inner->Controls) {
+              if (ctrl->GetType() == RadioButton::typeid && ctrl != rb) {
+                safe_cast<RadioButton ^>(ctrl)->Checked = false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+System::Void
 adminForm::cmbFilterRole_SelectedIndexChanged(System::Object ^ sender,
                                               System::EventArgs ^ e) {
   FilterUsers();
@@ -190,7 +158,6 @@ void adminForm::FilterIncome() {
     dbType = "withdrawal";
 
   bool hasFilter = (dbType != "Semua") || !String::IsNullOrEmpty(searchText);
-
   DataTable ^ displayDt = hasFilter ? dt->Clone() : dt;
 
   if (hasFilter) {
@@ -208,11 +175,9 @@ void adminForm::FilterIncome() {
       if (matchType && matchSearch)
         displayDt->ImportRow(row);
     }
+  } else {
+    displayDt = dt;
   }
-
-  dgvIncome->DataSource = displayDt;
-  if (dgvIncome->Columns["_RawID"] != nullptr)
-    dgvIncome->Columns["_RawID"]->Visible = false;
 
   // Calculate total from full dataset (not filtered)
   int total = 0;
@@ -220,6 +185,137 @@ void adminForm::FilterIncome() {
     total += Convert::ToInt32(row["Amount"]);
   }
   lblTotalIncomeValue->Text = L"Total: Rp " + String::Format("{0:N0}", total);
+
+  // Render to FlowLayoutPanel (Grouped by Username)
+  flpIncome->Controls->Clear();
+
+  if (displayDt->Rows->Count == 0) {
+    Label ^ lblEmpty = gcnew Label();
+    lblEmpty->Text = L"Tidak ada data income ditemukan.";
+    lblEmpty->Font = gcnew System::Drawing::Font(L"Segoe UI", 12);
+    lblEmpty->ForeColor = System::Drawing::Color::Gray;
+    lblEmpty->AutoSize = true;
+    lblEmpty->Padding = System::Windows::Forms::Padding(10, 20, 0, 0);
+    flpIncome->Controls->Add(lblEmpty);
+    return;
+  }
+
+  int cardWidth = flpIncome->Width - 30;
+
+  // Group by Username preserving order
+  System::Collections::Generic::Dictionary<
+      String ^, System::Collections::Generic::List<int> ^> ^
+      groups =
+      gcnew System::Collections::Generic::Dictionary<
+          String ^, System::Collections::Generic::List<int> ^>();
+  System::Collections::Generic::List<String ^> ^ groupOrder =
+      gcnew System::Collections::Generic::List<String ^>();
+
+  for (int i = 0; i < displayDt->Rows->Count; i++) {
+    String ^ username = displayDt->Rows[i]["Username"]->ToString();
+    if (!groups->ContainsKey(username)) {
+      groups[username] = gcnew System::Collections::Generic::List<int>();
+      groupOrder->Add(username);
+    }
+    groups[username]->Add(i);
+  }
+
+  for (int g = 0; g < groupOrder->Count; g++) {
+    String ^ username = groupOrder[g];
+    System::Collections::Generic::List<int> ^ rowIndices = groups[username];
+    int itemCount = rowIndices->Count;
+
+    // Calculate subtotal
+    int userTotal = 0;
+    for (int r = 0; r < rowIndices->Count; r++) {
+      userTotal += Convert::ToInt32(displayDt->Rows[rowIndices[r]]["Amount"]);
+    }
+
+    // === Card Panel ===
+    Panel ^ card = gcnew Panel();
+    card->Width = cardWidth;
+    card->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+    card->BackColor = System::Drawing::Color::White;
+    card->Margin = System::Windows::Forms::Padding(3, 3, 3, 8);
+
+    int yPos = 0;
+
+    // === Header bar ===
+    Panel ^ header = gcnew Panel();
+    header->Dock = DockStyle::Top;
+    header->Height = 42;
+    header->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
+
+    Label ^ lblUser = gcnew Label();
+    lblUser->Text = L"User: " + username + L" (" + itemCount + L" record)";
+    lblUser->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold);
+    lblUser->ForeColor = System::Drawing::Color::White;
+    lblUser->Location = System::Drawing::Point(10, 12);
+    lblUser->AutoSize = true;
+    header->Controls->Add(lblUser);
+
+    card->Controls->Add(header);
+    yPos = 48;
+
+    // === Item rows ===
+    for (int r = 0; r < rowIndices->Count; r++) {
+      int idx = rowIndices[r];
+      String ^ date = displayDt->Rows[idx]["Date"]->ToString();
+      String ^ desc = displayDt->Rows[idx]["Description"]->ToString();
+      int amount = Convert::ToInt32(displayDt->Rows[idx]["Amount"]);
+      String ^ type = displayDt->Rows[idx]["Type"]->ToString();
+
+      Panel ^ itemRow = gcnew Panel();
+      itemRow->Location = System::Drawing::Point(0, yPos);
+      itemRow->Size = System::Drawing::Size(cardWidth - 2, 26);
+      if (r % 2 == 1)
+        itemRow->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
+
+      Label ^ lblItem = gcnew Label();
+      lblItem->Text = L"  \x2022 [" + date + L"] " + desc;
+      lblItem->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblItem->Location = System::Drawing::Point(8, 4);
+      lblItem->AutoSize = true;
+      itemRow->Controls->Add(lblItem);
+
+      String ^ sign = (type == "withdrawal") ? L"-" : L"+";
+      Label ^ lblAmount = gcnew Label();
+      lblAmount->Text = sign + L"Rp " + String::Format("{0:N0}", amount);
+      lblAmount->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblAmount->ForeColor =
+          (type == "withdrawal")
+              ? System::Drawing::Color::Red
+              : System::Drawing::Color::FromArgb(46, 125, 50);
+      lblAmount->Location = System::Drawing::Point(cardWidth - 160, 4);
+      lblAmount->AutoSize = true;
+      itemRow->Controls->Add(lblAmount);
+
+      card->Controls->Add(itemRow);
+      yPos += 26;
+    }
+
+    // === Footer ===
+    Panel ^ footer = gcnew Panel();
+    footer->Location = System::Drawing::Point(0, yPos);
+    footer->Size = System::Drawing::Size(cardWidth - 2, 40);
+    footer->BackColor = System::Drawing::Color::FromArgb(245, 245, 245);
+
+    Label ^ lblSubtotal = gcnew Label();
+    lblSubtotal->Text = L"Subtotal: Rp " + String::Format("{0:N0}", userTotal);
+    lblSubtotal->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    lblSubtotal->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+    lblSubtotal->Location = System::Drawing::Point(10, 10);
+    lblSubtotal->AutoSize = true;
+    footer->Controls->Add(lblSubtotal);
+
+    card->Controls->Add(footer);
+    yPos += 40;
+
+    card->Height = yPos;
+    flpIncome->Controls->Add(card);
+  }
 }
 
 void adminForm::LoadTransactions() { FilterTransactions(); }
@@ -239,35 +335,186 @@ void adminForm::FilterTransactions() {
   bool hasFilter =
       (selectedStatus != "Semua") || !String::IsNullOrEmpty(searchText);
 
-  if (!hasFilter) {
-    dgvTransactions->DataSource = dt;
-    if (dgvTransactions->Columns["_RawID"] != nullptr)
-      dgvTransactions->Columns["_RawID"]->Visible = false;
+  DataTable ^ displayDt = hasFilter ? dt->Clone() : dt;
+
+  if (hasFilter) {
+    for each (DataRow ^ row in dt->Rows) {
+      String ^ status = row["Status"]->ToString();
+      String ^ pembeli = row["Pembeli"]->ToString()->ToLower();
+      String ^ kurir = row["Kurir"]->ToString()->ToLower();
+      String ^ id = row["ID"]->ToString()->ToLower();
+
+      bool matchStatus = selectedStatus == "Semua" || status == selectedStatus;
+      bool matchSearch =
+          String::IsNullOrEmpty(searchText) || pembeli->Contains(searchText) ||
+          kurir->Contains(searchText) || id->Contains(searchText);
+
+      if (matchStatus && matchSearch) {
+        displayDt->ImportRow(row);
+      }
+    }
+  } else {
+    displayDt = dt;
+  }
+
+  // Group by Pembeli (customer name)
+  flpTransactions->Controls->Clear();
+
+  if (displayDt->Rows->Count == 0) {
+    Label ^ lblEmpty = gcnew Label();
+    lblEmpty->Text = L"Tidak ada transaksi ditemukan.";
+    lblEmpty->Font = gcnew System::Drawing::Font(L"Segoe UI", 12);
+    lblEmpty->ForeColor = System::Drawing::Color::Gray;
+    lblEmpty->AutoSize = true;
+    lblEmpty->Padding = System::Windows::Forms::Padding(10, 20, 0, 0);
+    flpTransactions->Controls->Add(lblEmpty);
     return;
   }
 
-  // Create filtered view
-  DataTable ^ filteredDt = dt->Clone();
+  int cardWidth = flpTransactions->Width - 30;
 
-  for each (DataRow ^ row in dt->Rows) {
-    String ^ status = row["Status"]->ToString();
-    String ^ pembeli = row["Pembeli"]->ToString()->ToLower();
-    String ^ kurir = row["Kurir"]->ToString()->ToLower();
-    String ^ id = row["ID"]->ToString()->ToLower();
+  // Group by Pembeli
+  System::Collections::Generic::Dictionary<
+      String ^, System::Collections::Generic::List<int> ^> ^
+      groups =
+      gcnew System::Collections::Generic::Dictionary<
+          String ^, System::Collections::Generic::List<int> ^>();
+  System::Collections::Generic::List<String ^> ^ groupOrder =
+      gcnew System::Collections::Generic::List<String ^>();
 
-    bool matchStatus = selectedStatus == "Semua" || status == selectedStatus;
-    bool matchSearch = String::IsNullOrEmpty(searchText) ||
-                       pembeli->Contains(searchText) ||
-                       kurir->Contains(searchText) || id->Contains(searchText);
-
-    if (matchStatus && matchSearch) {
-      filteredDt->ImportRow(row);
+  for (int i = 0; i < displayDt->Rows->Count; i++) {
+    String ^ customer = displayDt->Rows[i]["Pembeli"]->ToString();
+    if (!groups->ContainsKey(customer)) {
+      groups[customer] = gcnew System::Collections::Generic::List<int>();
+      groupOrder->Add(customer);
     }
+    groups[customer]->Add(i);
   }
 
-  dgvTransactions->DataSource = filteredDt;
-  if (dgvTransactions->Columns["_RawID"] != nullptr)
-    dgvTransactions->Columns["_RawID"]->Visible = false;
+  for (int g = 0; g < groupOrder->Count; g++) {
+    String ^ customer = groupOrder[g];
+    System::Collections::Generic::List<int> ^ rowIndices = groups[customer];
+    int itemCount = rowIndices->Count;
+
+    // === Card Panel ===
+    Panel ^ card = gcnew Panel();
+    card->Width = cardWidth;
+    card->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+    card->BackColor = System::Drawing::Color::White;
+    card->Margin = System::Windows::Forms::Padding(3, 3, 3, 8);
+
+    int yPos = 0;
+
+    // Build comma-separated IDs for group selection
+    String ^ allIDs = "";
+    String ^ firstStatus = displayDt->Rows[rowIndices[0]]["Status"]->ToString();
+    String ^ firstCourier = displayDt->Rows[rowIndices[0]]["Kurir"]->ToString();
+    for (int r = 0; r < rowIndices->Count; r++) {
+      if (r > 0)
+        allIDs += ",";
+      allIDs += displayDt->Rows[rowIndices[r]]["_RawID"]->ToString();
+    }
+
+    // === Header bar with radio button ===
+    Panel ^ header = gcnew Panel();
+    header->Dock = DockStyle::Top;
+    header->Height = 42;
+    header->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
+
+    RadioButton ^ rbCard = gcnew RadioButton();
+    rbCard->Text = L"";
+    rbCard->Tag = allIDs;
+    rbCard->AccessibleName = firstStatus;
+    rbCard->AccessibleDescription = firstCourier;
+    rbCard->Location = System::Drawing::Point(8, 12);
+    rbCard->Size = System::Drawing::Size(18, 18);
+    rbCard->CheckedChanged += gcnew System::EventHandler(
+        this, &adminForm::TransactionRadioButton_CheckedChanged);
+    header->Controls->Add(rbCard);
+
+    Label ^ lblCustName = gcnew Label();
+    lblCustName->Text =
+        L"Pembeli: " + customer + L" (" + itemCount + L" transaksi)";
+    lblCustName->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold);
+    lblCustName->ForeColor = System::Drawing::Color::White;
+    lblCustName->Location = System::Drawing::Point(30, 2);
+    lblCustName->AutoSize = true;
+    header->Controls->Add(lblCustName);
+
+    Label ^ lblHeaderStatus = gcnew Label();
+    lblHeaderStatus->Text = L"Status: " + firstStatus;
+    lblHeaderStatus->Font = gcnew System::Drawing::Font(L"Segoe UI", 8);
+    lblHeaderStatus->ForeColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    lblHeaderStatus->Location = System::Drawing::Point(30, 24);
+    lblHeaderStatus->AutoSize = true;
+    header->Controls->Add(lblHeaderStatus);
+
+    card->Controls->Add(header);
+    yPos = 48;
+
+    // === Item rows (26px each) ===
+    for (int r = 0; r < rowIndices->Count; r++) {
+      int idx = rowIndices[r];
+      String ^ transId = displayDt->Rows[idx]["ID"]->ToString();
+      String ^ date = displayDt->Rows[idx]["Date"]->ToString();
+      String ^ status = displayDt->Rows[idx]["Status"]->ToString();
+
+      Panel ^ itemRow = gcnew Panel();
+      itemRow->Location = System::Drawing::Point(0, yPos);
+      itemRow->Size = System::Drawing::Size(cardWidth - 2, 26);
+      if (r % 2 == 1)
+        itemRow->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
+
+      Label ^ lblTx = gcnew Label();
+      lblTx->Text = L"  \x2022 " + transId + L" [" + date + L"]";
+      lblTx->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblTx->Location = System::Drawing::Point(8, 4);
+      lblTx->AutoSize = true;
+      itemRow->Controls->Add(lblTx);
+
+      Label ^ lblStatus = gcnew Label();
+      lblStatus->Text = status;
+      lblStatus->Font = gcnew System::Drawing::Font(
+          L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
+      if (status == "pending")
+        lblStatus->ForeColor = System::Drawing::Color::Orange;
+      else if (status == "delivered" || status == "received")
+        lblStatus->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+      else if (status == "cancelled")
+        lblStatus->ForeColor = System::Drawing::Color::Red;
+      else
+        lblStatus->ForeColor = System::Drawing::Color::Gray;
+      lblStatus->Location = System::Drawing::Point(cardWidth - 150, 4);
+      lblStatus->AutoSize = true;
+      itemRow->Controls->Add(lblStatus);
+
+      card->Controls->Add(itemRow);
+      yPos += 26;
+    }
+
+    // === Footer ===
+    Panel ^ footer = gcnew Panel();
+    footer->Location = System::Drawing::Point(0, yPos);
+    footer->Size = System::Drawing::Size(cardWidth - 2, 40);
+    footer->BackColor = System::Drawing::Color::FromArgb(245, 245, 245);
+
+    Label ^ lblTotal = gcnew Label();
+    lblTotal->Text = L"Total: " + itemCount + L" transaksi";
+    lblTotal->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    lblTotal->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+    lblTotal->Location = System::Drawing::Point(10, 10);
+    lblTotal->AutoSize = true;
+    footer->Controls->Add(lblTotal);
+
+    card->Controls->Add(footer);
+    yPos += 40;
+
+    card->Height = yPos;
+    flpTransactions->Controls->Add(card);
+  }
 }
 
 System::Void
@@ -480,20 +727,16 @@ System::Void adminForm::btnSaveUser_Click(System::Object ^ sender,
 
     String ^ role = cmbNewRole->SelectedItem->ToString();
 
-    // If Courier, ask if Express or Regular
+    // If Courier, require courier type selection
     bool success = false;
     if (role == "Courier") {
-      System::Windows::Forms::DialogResult result = MessageBox::Show(
-          "Apakah kurir ini adalah Kurir Express?\n\n"
-          "Express: Ditugaskan langsung oleh customer (ongkir Rp 20.000/toko)\n"
-          "Regular: Mengambil pesanan sendiri (ongkir Rp 10.000/toko)",
-          "Tipe Kurir", MessageBoxButtons::YesNoCancel,
-          MessageBoxIcon::Question);
-      if (result == System::Windows::Forms::DialogResult::Cancel)
+      if (cmbCourierType->SelectedIndex < 0) {
+        MessageBox::Show("Pilih tipe kurir (Reguler/Express)!", "Peringatan",
+                         MessageBoxButtons::OK, MessageBoxIcon::Warning);
         return;
+      }
       String ^ courierType =
-          (result == System::Windows::Forms::DialogResult::Yes) ? "express"
-                                                                : "regular";
+          (cmbCourierType->SelectedIndex == 1) ? "express" : "regular";
       success =
           DatabaseManager::RegisterUser(username, password, role, courierType);
     } else {
@@ -527,6 +770,20 @@ void adminForm::ClearAddUserForm() {
   txtNewPassword->Text = "";
   txtNewPassword->PasswordChar = '*';
   cmbNewRole->SelectedIndex = -1;
+  cmbCourierType->SelectedIndex = -1;
+  lblCourierType->Visible = false;
+  cmbCourierType->Visible = false;
+}
+
+System::Void adminForm::cmbNewRole_SelectedIndexChanged(System::Object ^ sender,
+                                                        System::EventArgs ^ e) {
+  bool isCourier = (cmbNewRole->SelectedIndex >= 0 &&
+                    cmbNewRole->SelectedItem->ToString() == "Courier");
+  lblCourierType->Visible = isCourier;
+  cmbCourierType->Visible = isCourier;
+  if (!isCourier) {
+    cmbCourierType->SelectedIndex = -1;
+  }
 }
 
 System::Void adminForm::btnEditUser_Click(System::Object ^ sender,
@@ -609,6 +866,16 @@ System::Void adminForm::txtSearchProduct_TextChanged(System::Object ^ sender,
 System::Void adminForm::btnRefreshProducts_Click(System::Object ^ sender,
                                                  System::EventArgs ^ e) {
   LoadProducts();
+}
+
+void adminForm::LoadFrequentProducts() {
+  DataTable ^ dt = DatabaseManager::GetFrequentlyBoughtProducts();
+  dgvFrequentProducts->DataSource = dt;
+}
+
+System::Void adminForm::btnRefreshFrequentProducts_Click(
+    System::Object ^ sender, System::EventArgs ^ e) {
+  LoadFrequentProducts();
 }
 
 System::Void adminForm::btnEditProduct_Click(System::Object ^ sender,
@@ -723,17 +990,33 @@ void adminForm::ClearEditProductForm() {
 // Transaction status edit
 System::Void adminForm::btnEditTransactionStatus_Click(System::Object ^ sender,
                                                        System::EventArgs ^ e) {
-  if (dgvTransactions->SelectedRows->Count == 0) {
-    MessageBox::Show("Pilih transaksi yang akan diubah statusnya!",
+  RadioButton ^ selectedRb = nullptr;
+
+  // Find selected radio button
+  for each (Control ^ card in flpTransactions->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ ctrl in card->Controls) {
+        if (ctrl->GetType() == RadioButton::typeid) {
+          RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+          if (rb->Checked) {
+            selectedRb = rb;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
+    MessageBox::Show("Pilih transaksi yang akan diubah statusnya! (Klik radio "
+                     "button 'Pilih')",
                      "Peringatan", MessageBoxButtons::OK,
                      MessageBoxIcon::Warning);
     return;
   }
 
-  int transID = Convert::ToInt32(
-      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ currentStatus =
-      dgvTransactions->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  int transID = Convert::ToInt32(selectedRb->Tag);
+  String ^ currentStatus = selectedRb->AccessibleName;
 
   // Create a simple form for status selection
   System::Windows::Forms::Form ^ dialog = gcnew System::Windows::Forms::Form();
@@ -796,14 +1079,31 @@ System::Void adminForm::btnEditTransactionStatus_Click(System::Object ^ sender,
 // Delete transaction
 System::Void adminForm::btnDeleteTransaction_Click(System::Object ^ sender,
                                                    System::EventArgs ^ e) {
-  if (dgvTransactions->SelectedRows->Count == 0) {
-    MessageBox::Show("Pilih transaksi yang akan dihapus!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+  RadioButton ^ selectedRb = nullptr;
+
+  // Find selected radio button
+  for each (Control ^ card in flpTransactions->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ ctrl in card->Controls) {
+        if (ctrl->GetType() == RadioButton::typeid) {
+          RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+          if (rb->Checked) {
+            selectedRb = rb;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
+    MessageBox::Show(
+        "Pilih transaksi yang akan dihapus! (Klik radio button 'Pilih')",
+        "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
-  int transID = Convert::ToInt32(
-      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
+  int transID = Convert::ToInt32(selectedRb->Tag);
 
   System::Windows::Forms::DialogResult result = MessageBox::Show(
       "Apakah Anda yakin ingin menghapus transaksi ID: " + transID + "?",
@@ -972,16 +1272,32 @@ System::Void adminForm::btnActivateProduct_Click(System::Object ^ sender,
 // Refund transaction
 System::Void adminForm::btnRefundTransaction_Click(System::Object ^ sender,
                                                    System::EventArgs ^ e) {
-  if (dgvTransactions->SelectedRows->Count == 0) {
-    MessageBox::Show("Pilih transaksi yang akan di-refund!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
+  RadioButton ^ selectedRb = nullptr;
+
+  // Find selected radio button
+  for each (Control ^ card in flpTransactions->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ ctrl in card->Controls) {
+        if (ctrl->GetType() == RadioButton::typeid) {
+          RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+          if (rb->Checked) {
+            selectedRb = rb;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
+    MessageBox::Show(
+        "Pilih transaksi yang akan di-refund! (Klik radio button 'Pilih')",
+        "Peringatan", MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
-  int transID = Convert::ToInt32(
-      dgvTransactions->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ currentStatus =
-      dgvTransactions->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  int transID = Convert::ToInt32(selectedRb->Tag);
+  String ^ currentStatus = selectedRb->AccessibleName;
 
   if (currentStatus != "shipping" && currentStatus != "delivered" &&
       currentStatus != "refund_requested") {

@@ -155,7 +155,7 @@ private:
   System::Windows::Forms::Label ^ lblSalesTitle;
 
 private:
-  System::Windows::Forms::DataGridView ^ dgvSales;
+  System::Windows::Forms::FlowLayoutPanel ^ flpSales;
 
 private:
   System::Windows::Forms::Button ^ btnRefreshSales;
@@ -227,7 +227,7 @@ private:
     this->btnCancelProduct = (gcnew System::Windows::Forms::Button());
     this->tabSales = (gcnew System::Windows::Forms::TabPage());
     this->lblSalesTitle = (gcnew System::Windows::Forms::Label());
-    this->dgvSales = (gcnew System::Windows::Forms::DataGridView());
+    this->flpSales = (gcnew System::Windows::Forms::FlowLayoutPanel());
     this->btnRefreshSales = (gcnew System::Windows::Forms::Button());
     this->tabProfile = (gcnew System::Windows::Forms::TabPage());
     this->lblProfileTitle = (gcnew System::Windows::Forms::Label());
@@ -244,9 +244,6 @@ private:
         ->BeginInit();
     this->panelProduct->SuspendLayout();
     this->tabSales->SuspendLayout();
-    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
-         this->dgvSales))
-        ->BeginInit();
     this->tabProfile->SuspendLayout();
     this->SuspendLayout();
     //
@@ -691,7 +688,7 @@ private:
     // tabSales
     //
     this->tabSales->Controls->Add(this->lblSalesTitle);
-    this->tabSales->Controls->Add(this->dgvSales);
+    this->tabSales->Controls->Add(this->flpSales);
     this->tabSales->Controls->Add(this->btnRefreshSales);
     this->tabSales->Location = System::Drawing::Point(4, 22);
     this->tabSales->Name = L"tabSales";
@@ -711,20 +708,17 @@ private:
     this->lblSalesTitle->TabIndex = 0;
     this->lblSalesTitle->Text = L"Riwayat Penjualan";
     //
-    // dgvSales
+    // flpSales
     //
-    this->dgvSales->AllowUserToAddRows = false;
-    this->dgvSales->AllowUserToDeleteRows = false;
-    this->dgvSales->AutoSizeColumnsMode =
-        System::Windows::Forms::DataGridViewAutoSizeColumnsMode::Fill;
-    this->dgvSales->ColumnHeadersHeightSizeMode = System::Windows::Forms::
-        DataGridViewColumnHeadersHeightSizeMode::AutoSize;
-    this->dgvSales->Location = System::Drawing::Point(15, 50);
-    this->dgvSales->MultiSelect = false;
-    this->dgvSales->Name = L"dgvSales";
-    this->dgvSales->ReadOnly = true;
-    this->dgvSales->Size = System::Drawing::Size(820, 340);
-    this->dgvSales->TabIndex = 1;
+    this->flpSales->AutoScroll = true;
+    this->flpSales->BackColor = System::Drawing::Color::FromArgb(
+        static_cast<System::Int32>(static_cast<System::Byte>(245)),
+        static_cast<System::Int32>(static_cast<System::Byte>(247)),
+        static_cast<System::Int32>(static_cast<System::Byte>(250)));
+    this->flpSales->Location = System::Drawing::Point(15, 50);
+    this->flpSales->Name = L"flpSales";
+    this->flpSales->Size = System::Drawing::Size(820, 340);
+    this->flpSales->TabIndex = 1;
     //
     // btnRefreshSales
     //
@@ -859,9 +853,6 @@ private:
     this->panelProduct->PerformLayout();
     this->tabSales->ResumeLayout(false);
     this->tabSales->PerformLayout();
-    (cli::safe_cast<System::ComponentModel::ISupportInitialize ^>(
-         this->dgvSales))
-        ->EndInit();
     this->tabProfile->ResumeLayout(false);
     this->tabProfile->PerformLayout();
     this->ResumeLayout(false);

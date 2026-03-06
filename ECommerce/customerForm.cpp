@@ -6,7 +6,7 @@ namespace ECommerce {
 System::Void customerForm::customerForm_Load(System::Object ^ sender,
                                              System::EventArgs ^ e) {
   // Apply DGV theming
-  array<DataGridView ^> ^ grids = {dgvProducts, dgvCart, dgvHistory};
+  array<DataGridView ^> ^ grids = {dgvProducts, dgvCart};
   for each (DataGridView ^ dgv in grids) {
     dgv->BackgroundColor = System::Drawing::Color::White;
     dgv->BorderStyle = System::Windows::Forms::BorderStyle::None;
@@ -38,57 +38,6 @@ System::Void customerForm::customerForm_Load(System::Object ^ sender,
   // Hide MerchantID column in cart
   if (dgvCart->Columns["MerchantID"])
     dgvCart->Columns["MerchantID"]->Visible = false;
-
-  // === Dynamic Button: History Tab - Ajukan Refund ===
-  btnRequestRefund = gcnew Button();
-  btnRequestRefund->Text = L"Ajukan Refund";
-  btnRequestRefund->BackColor = System::Drawing::Color::FromArgb(245, 124, 0);
-  btnRequestRefund->ForeColor = System::Drawing::Color::White;
-  btnRequestRefund->FlatStyle = FlatStyle::Flat;
-  btnRequestRefund->FlatAppearance->BorderSize = 0;
-  btnRequestRefund->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnRequestRefund->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnRequestRefund->Size = System::Drawing::Size(120, 30);
-  btnRequestRefund->Location =
-      System::Drawing::Point(btnCancelOrder->Right + 10, btnCancelOrder->Top);
-  btnRequestRefund->Click +=
-      gcnew System::EventHandler(this, &customerForm::btnRequestRefund_Click);
-  tabHistory->Controls->Add(btnRequestRefund);
-
-  // === Dynamic Button: Beri Rating ===
-  btnGiveRating = gcnew Button();
-  btnGiveRating->Text = L"Beri Rating";
-  btnGiveRating->BackColor = System::Drawing::Color::FromArgb(255, 193, 7);
-  btnGiveRating->ForeColor = System::Drawing::Color::Black;
-  btnGiveRating->FlatStyle = FlatStyle::Flat;
-  btnGiveRating->FlatAppearance->BorderSize = 0;
-  btnGiveRating->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnGiveRating->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnGiveRating->Size = System::Drawing::Size(110, 30);
-  btnGiveRating->Location =
-      System::Drawing::Point(btnRequestRefund->Right + 10, btnCancelOrder->Top);
-  btnGiveRating->Click +=
-      gcnew System::EventHandler(this, &customerForm::btnGiveRating_Click);
-  tabHistory->Controls->Add(btnGiveRating);
-
-  // === Dynamic Button: Lacak Pesanan ===
-  btnTrackOrder = gcnew Button();
-  btnTrackOrder->Text = L"Lacak Pesanan";
-  btnTrackOrder->BackColor = System::Drawing::Color::FromArgb(33, 150, 243);
-  btnTrackOrder->ForeColor = System::Drawing::Color::White;
-  btnTrackOrder->FlatStyle = FlatStyle::Flat;
-  btnTrackOrder->FlatAppearance->BorderSize = 0;
-  btnTrackOrder->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 9, System::Drawing::FontStyle::Bold);
-  btnTrackOrder->Cursor = System::Windows::Forms::Cursors::Hand;
-  btnTrackOrder->Size = System::Drawing::Size(120, 30);
-  btnTrackOrder->Location =
-      System::Drawing::Point(btnGiveRating->Right + 10, btnCancelOrder->Top);
-  btnTrackOrder->Click +=
-      gcnew System::EventHandler(this, &customerForm::btnTrackOrder_Click);
-  tabHistory->Controls->Add(btnTrackOrder);
 }
 
 System::Void
@@ -131,12 +80,198 @@ void customerForm::LoadCatalog() {
 }
 
 void customerForm::LoadHistory() {
-  dgvHistory->DataSource =
-      DatabaseManager::GetTransactionsByCustomer(currentUserID);
-  if (dgvHistory->Columns["_RawID"] != nullptr)
-    dgvHistory->Columns["_RawID"]->Visible = false;
-  if (dgvHistory->Columns["_RawProductID"] != nullptr)
-    dgvHistory->Columns["_RawProductID"]->Visible = false;
+  DataTable ^ dt = DatabaseManager::GetTransactionsByCustomer(currentUserID);
+
+  flpHistory->Controls->Clear();
+
+  if (dt->Rows->Count == 0) {
+    Label ^ lblEmpty = gcnew Label();
+    lblEmpty->Text = L"Belum ada riwayat pembelian.";
+    lblEmpty->Font = gcnew System::Drawing::Font(L"Segoe UI", 12);
+    lblEmpty->ForeColor = System::Drawing::Color::Gray;
+    lblEmpty->AutoSize = true;
+    lblEmpty->Padding = System::Windows::Forms::Padding(10, 20, 0, 0);
+    flpHistory->Controls->Add(lblEmpty);
+    return;
+  }
+
+  int cardWidth = flpHistory->Width - 30;
+
+  // Group by Tanggal
+  System::Collections::Generic::Dictionary<
+      String ^, System::Collections::Generic::List<int> ^> ^
+      groups =
+      gcnew System::Collections::Generic::Dictionary<
+          String ^, System::Collections::Generic::List<int> ^>();
+  System::Collections::Generic::List<String ^> ^ groupOrder =
+      gcnew System::Collections::Generic::List<String ^>();
+
+  for (int i = 0; i < dt->Rows->Count; i++) {
+    String ^ tanggal = dt->Rows[i]["Tanggal"]->ToString();
+    if (!groups->ContainsKey(tanggal)) {
+      groups[tanggal] = gcnew System::Collections::Generic::List<int>();
+      groupOrder->Add(tanggal);
+    }
+    groups[tanggal]->Add(i);
+  }
+
+  for (int g = 0; g < groupOrder->Count; g++) {
+    String ^ tanggal = groupOrder[g];
+    System::Collections::Generic::List<int> ^ rowIndices = groups[tanggal];
+    int itemCount = rowIndices->Count;
+
+    // Calculate group total
+    int groupTotal = 0;
+    for (int r = 0; r < rowIndices->Count; r++) {
+      groupTotal += Convert::ToInt32(dt->Rows[rowIndices[r]]["Total"]);
+    }
+
+    // === Card Panel ===
+    Panel ^ card = gcnew Panel();
+    card->Width = cardWidth;
+    card->BorderStyle = System::Windows::Forms::BorderStyle::FixedSingle;
+    card->BackColor = System::Drawing::Color::White;
+    card->Margin = System::Windows::Forms::Padding(3, 3, 3, 8);
+
+    int yPos = 0;
+
+    // Build comma-separated IDs for group selection
+    String ^ allIDs = "";
+    String ^ firstStatus = dt->Rows[rowIndices[0]]["Status"]->ToString();
+    String ^ firstShipping =
+        dt->Rows[rowIndices[0]]["Tipe Pengiriman"]->ToString();
+    String ^ shippingLabel =
+        (firstShipping == "express") ? "Express" : "Reguler";
+    int ongkirRate = (firstShipping == "express") ? 20000 : 10000;
+    int ongkir = ongkirRate; // per group
+    for (int r = 0; r < rowIndices->Count; r++) {
+      if (r > 0)
+        allIDs += ",";
+      allIDs += dt->Rows[rowIndices[r]]["_RawID"]->ToString();
+    }
+
+    // === Header bar with radio button ===
+    Panel ^ header = gcnew Panel();
+    header->Dock = DockStyle::Top;
+    header->Height = 42;
+    header->BackColor = System::Drawing::Color::FromArgb(46, 125, 50);
+
+    RadioButton ^ rbCard = gcnew RadioButton();
+    rbCard->Text = L"";
+    rbCard->Tag = allIDs;
+    rbCard->AccessibleName = firstStatus;
+    rbCard->AccessibleDescription = groupTotal.ToString();
+    rbCard->Location = System::Drawing::Point(8, 12);
+    rbCard->Size = System::Drawing::Size(18, 18);
+    rbCard->CheckedChanged += gcnew System::EventHandler(
+        this, &customerForm::HistoryRadioButton_CheckedChanged);
+    header->Controls->Add(rbCard);
+
+    Label ^ lblDate = gcnew Label();
+    lblDate->Text = L"Pesanan: " + tanggal + L" (" + itemCount + L" item)";
+    lblDate->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 11, System::Drawing::FontStyle::Bold);
+    lblDate->ForeColor = System::Drawing::Color::White;
+    lblDate->Location = System::Drawing::Point(30, 2);
+    lblDate->AutoSize = true;
+    header->Controls->Add(lblDate);
+
+    Label ^ lblHeaderStatus = gcnew Label();
+    lblHeaderStatus->Text =
+        L"Status: " + firstStatus + L" | Kurir: " + shippingLabel;
+    lblHeaderStatus->Font = gcnew System::Drawing::Font(L"Segoe UI", 8);
+    lblHeaderStatus->ForeColor =
+        System::Drawing::Color::FromArgb(200, 230, 201);
+    lblHeaderStatus->Location = System::Drawing::Point(30, 24);
+    lblHeaderStatus->AutoSize = true;
+    header->Controls->Add(lblHeaderStatus);
+
+    card->Controls->Add(header);
+    yPos = 48;
+
+    // === Item rows (26px each) ===
+    for (int r = 0; r < rowIndices->Count; r++) {
+      int idx = rowIndices[r];
+      String ^ produk = dt->Rows[idx]["Produk"]->ToString();
+      int total = Convert::ToInt32(dt->Rows[idx]["Total"]);
+
+      Panel ^ itemRow = gcnew Panel();
+      itemRow->Location = System::Drawing::Point(0, yPos);
+      itemRow->Size = System::Drawing::Size(cardWidth - 2, 26);
+      if (r % 2 == 1)
+        itemRow->BackColor = System::Drawing::Color::FromArgb(245, 247, 250);
+
+      Label ^ lblProd = gcnew Label();
+      lblProd->Text = L"  \x2022 " + produk;
+      lblProd->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblProd->Location = System::Drawing::Point(8, 4);
+      lblProd->AutoSize = true;
+      itemRow->Controls->Add(lblProd);
+
+      Label ^ lblPrice = gcnew Label();
+      lblPrice->Text = L"Rp " + String::Format("{0:N0}", total);
+      lblPrice->Font = gcnew System::Drawing::Font(L"Segoe UI", 9);
+      lblPrice->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+      lblPrice->Location = System::Drawing::Point(cardWidth - 150, 4);
+      lblPrice->AutoSize = true;
+      itemRow->Controls->Add(lblPrice);
+
+      card->Controls->Add(itemRow);
+      yPos += 26;
+    }
+
+    // === Footer ===
+    int grandTotal = groupTotal + ongkir;
+    Panel ^ footer = gcnew Panel();
+    footer->Location = System::Drawing::Point(0, yPos);
+    footer->Size = System::Drawing::Size(cardWidth - 2, 52);
+    footer->BackColor = System::Drawing::Color::FromArgb(245, 245, 245);
+
+    Label ^ lblOngkir = gcnew Label();
+    lblOngkir->Text = L"Ongkir (" + shippingLabel + L"): Rp " +
+                      String::Format("{0:N0}", ongkir);
+    lblOngkir->Font = gcnew System::Drawing::Font(L"Segoe UI", 8);
+    lblOngkir->ForeColor = System::Drawing::Color::Gray;
+    lblOngkir->Location = System::Drawing::Point(10, 4);
+    lblOngkir->AutoSize = true;
+    footer->Controls->Add(lblOngkir);
+
+    Label ^ lblTotal = gcnew Label();
+    lblTotal->Text = L"Total: Rp " + String::Format("{0:N0}", grandTotal);
+    lblTotal->Font = gcnew System::Drawing::Font(
+        L"Segoe UI", 10, System::Drawing::FontStyle::Bold);
+    lblTotal->ForeColor = System::Drawing::Color::FromArgb(46, 125, 50);
+    lblTotal->Location = System::Drawing::Point(10, 24);
+    lblTotal->AutoSize = true;
+    footer->Controls->Add(lblTotal);
+
+    card->Controls->Add(footer);
+    yPos += 52;
+
+    card->Height = yPos;
+    flpHistory->Controls->Add(card);
+  }
+}
+
+System::Void
+customerForm::HistoryRadioButton_CheckedChanged(System::Object ^ sender,
+                                                System::EventArgs ^ e) {
+  RadioButton ^ rb = safe_cast<RadioButton ^>(sender);
+  if (rb->Checked) {
+    for each (Control ^ card in flpHistory->Controls) {
+      if (card->GetType() == Panel::typeid) {
+        for each (Control ^ inner in card->Controls) {
+          if (inner->GetType() == Panel::typeid) {
+            for each (Control ^ ctrl in inner->Controls) {
+              if (ctrl->GetType() == RadioButton::typeid && ctrl != rb) {
+                safe_cast<RadioButton ^>(ctrl)->Checked = false;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 void customerForm::FilterProducts(String ^ keyword) {
@@ -467,16 +602,36 @@ System::Void customerForm::btnRefreshHistory_Click(System::Object ^ sender,
 
 System::Void customerForm::btnConfirmReceived_Click(System::Object ^ sender,
                                                     System::EventArgs ^ e) {
-  if (dgvHistory->SelectedRows->Count == 0) {
+  RadioButton ^ selectedRb = nullptr;
+  for each (Control ^ card in flpHistory->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ inner in card->Controls) {
+        if (inner->GetType() == Panel::typeid) {
+          for each (Control ^ ctrl in inner->Controls) {
+            if (ctrl->GetType() == RadioButton::typeid) {
+              RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+              if (rb->Checked) {
+                selectedRb = rb;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
     MessageBox::Show("Pilih pesanan yang akan dikonfirmasi!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
-  int transactionID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ status =
-      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  // Tag contains comma-separated IDs; use first one
+  String ^ tagStr = selectedRb->Tag->ToString();
+  array<String ^> ^ ids = tagStr->Split(',');
+  int transactionID = Convert::ToInt32(ids[0]);
+  String ^ status = selectedRb->AccessibleName;
 
   if (status != "delivered") {
     MessageBox::Show("Pesanan hanya dapat dikonfirmasi jika sudah dikirim "
@@ -553,16 +708,35 @@ System::Void customerForm::btnSaveAlamat_Click(System::Object ^ sender,
 
 System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
                                                 System::EventArgs ^ e) {
-  if (dgvHistory->SelectedRows->Count == 0) {
+  RadioButton ^ selectedRb = nullptr;
+  for each (Control ^ card in flpHistory->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ inner in card->Controls) {
+        if (inner->GetType() == Panel::typeid) {
+          for each (Control ^ ctrl in inner->Controls) {
+            if (ctrl->GetType() == RadioButton::typeid) {
+              RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+              if (rb->Checked) {
+                selectedRb = rb;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
     MessageBox::Show("Pilih pesanan yang ingin dibatalkan!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
-  int transactionID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ status =
-      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  String ^ tagStr = selectedRb->Tag->ToString();
+  array<String ^> ^ ids = tagStr->Split(',');
+  int transactionID = Convert::ToInt32(ids[0]);
+  String ^ status = selectedRb->AccessibleName;
 
   // Only allow canceling pending orders
   if (status != "pending") {
@@ -574,8 +748,7 @@ System::Void customerForm::btnCancelOrder_Click(System::Object ^ sender,
     return;
   }
 
-  int totalPrice =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["Total"]->Value);
+  int totalPrice = Convert::ToInt32(selectedRb->AccessibleDescription);
 
   if (MessageBox::Show("Batalkan pesanan ini?\\n\\nTotal: Rp " +
                            String::Format("{0:N0}", totalPrice) +
@@ -621,16 +794,35 @@ System::Void customerForm::rbExpress_CheckedChanged(System::Object ^ sender,
 
 System::Void customerForm::btnRequestRefund_Click(System::Object ^ sender,
                                                   System::EventArgs ^ e) {
-  if (dgvHistory->SelectedRows->Count == 0) {
+  RadioButton ^ selectedRb = nullptr;
+  for each (Control ^ card in flpHistory->Controls) {
+    if (card->GetType() == Panel::typeid) {
+      for each (Control ^ inner in card->Controls) {
+        if (inner->GetType() == Panel::typeid) {
+          for each (Control ^ ctrl in inner->Controls) {
+            if (ctrl->GetType() == RadioButton::typeid) {
+              RadioButton ^ rb = safe_cast<RadioButton ^>(ctrl);
+              if (rb->Checked) {
+                selectedRb = rb;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (selectedRb == nullptr) {
     MessageBox::Show("Pilih pesanan yang ingin di-refund!", "Peringatan",
                      MessageBoxButtons::OK, MessageBoxIcon::Warning);
     return;
   }
 
-  int transactionID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ status =
-      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
+  String ^ tagStr = selectedRb->Tag->ToString();
+  array<String ^> ^ ids = tagStr->Split(',');
+  int transactionID = Convert::ToInt32(ids[0]);
+  String ^ status = selectedRb->AccessibleName;
 
   if (status != "shipping") {
     MessageBox::Show(
@@ -657,167 +849,6 @@ System::Void customerForm::btnRequestRefund_Click(System::Object ^ sender,
                        MessageBoxButtons::OK, MessageBoxIcon::Error);
     }
   }
-}
-
-// Rating
-System::Void customerForm::btnGiveRating_Click(System::Object ^ sender,
-                                               System::EventArgs ^ e) {
-  if (dgvHistory->SelectedRows->Count == 0) {
-    MessageBox::Show("Pilih pesanan untuk memberi rating!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  int transID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ status =
-      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
-
-  if (status != "delivered" && status != "received") {
-    MessageBox::Show(
-        "Rating hanya bisa diberikan untuk pesanan yang sudah diterima!",
-        "Info", MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  if (DatabaseManager::HasReviewed(transID)) {
-    MessageBox::Show("Anda sudah memberikan rating untuk pesanan ini!", "Info",
-                     MessageBoxButtons::OK, MessageBoxIcon::Information);
-    return;
-  }
-
-  int productID = Convert::ToInt32(
-      dgvHistory->SelectedRows[0]->Cells["_RawProductID"]->Value);
-
-  // Rating dialog
-  Form ^ dialog = gcnew Form();
-  dialog->Text = L"Beri Rating";
-  dialog->Size = System::Drawing::Size(350, 250);
-  dialog->StartPosition = FormStartPosition::CenterParent;
-  dialog->FormBorderStyle =
-      System::Windows::Forms::FormBorderStyle::FixedDialog;
-  dialog->MaximizeBox = false;
-  dialog->MinimizeBox = false;
-
-  Label ^ lblRate = gcnew Label();
-  lblRate->Text = L"Rating (1-5 bintang):";
-  lblRate->Location = System::Drawing::Point(15, 15);
-  lblRate->AutoSize = true;
-  dialog->Controls->Add(lblRate);
-
-  NumericUpDown ^ nudRating = gcnew NumericUpDown();
-  nudRating->Minimum = 1;
-  nudRating->Maximum = 5;
-  nudRating->Value = 5;
-  nudRating->Location = System::Drawing::Point(15, 40);
-  nudRating->Size = System::Drawing::Size(60, 25);
-  dialog->Controls->Add(nudRating);
-
-  Label ^ lblComment = gcnew Label();
-  lblComment->Text = L"Komentar:";
-  lblComment->Location = System::Drawing::Point(15, 75);
-  lblComment->AutoSize = true;
-  dialog->Controls->Add(lblComment);
-
-  TextBox ^ txtComment = gcnew TextBox();
-  txtComment->Multiline = true;
-  txtComment->Location = System::Drawing::Point(15, 95);
-  txtComment->Size = System::Drawing::Size(300, 60);
-  dialog->Controls->Add(txtComment);
-
-  Button ^ btnOK = gcnew Button();
-  btnOK->Text = L"Kirim Rating";
-  btnOK->BackColor = System::Drawing::Color::FromArgb(255, 193, 7);
-  btnOK->DialogResult = System::Windows::Forms::DialogResult::OK;
-  btnOK->Location = System::Drawing::Point(15, 170);
-  btnOK->Size = System::Drawing::Size(120, 30);
-  dialog->Controls->Add(btnOK);
-
-  Button ^ btnCancel = gcnew Button();
-  btnCancel->Text = L"Batal";
-  btnCancel->DialogResult = System::Windows::Forms::DialogResult::Cancel;
-  btnCancel->Location = System::Drawing::Point(150, 170);
-  btnCancel->Size = System::Drawing::Size(100, 30);
-  dialog->Controls->Add(btnCancel);
-
-  dialog->AcceptButton = btnOK;
-  dialog->CancelButton = btnCancel;
-
-  if (dialog->ShowDialog() == System::Windows::Forms::DialogResult::OK) {
-    int rating = Convert::ToInt32(nudRating->Value);
-    if (DatabaseManager::AddReview(transID, currentUserID, productID, rating,
-                                   txtComment->Text)) {
-      MessageBox::Show("Rating berhasil dikirim! Terima kasih.", "Sukses",
-                       MessageBoxButtons::OK, MessageBoxIcon::Information);
-    } else {
-      MessageBox::Show("Gagal mengirim rating!", "Error", MessageBoxButtons::OK,
-                       MessageBoxIcon::Error);
-    }
-  }
-}
-
-// Tracking
-System::Void customerForm::btnTrackOrder_Click(System::Object ^ sender,
-                                               System::EventArgs ^ e) {
-  if (dgvHistory->SelectedRows->Count == 0) {
-    MessageBox::Show("Pilih pesanan untuk melacak!", "Peringatan",
-                     MessageBoxButtons::OK, MessageBoxIcon::Warning);
-    return;
-  }
-
-  int transID =
-      Convert::ToInt32(dgvHistory->SelectedRows[0]->Cells["_RawID"]->Value);
-  String ^ status =
-      dgvHistory->SelectedRows[0]->Cells["Status"]->Value->ToString();
-
-  DataTable ^ tracking = DatabaseManager::GetOrderTracking(transID);
-
-  // Dialog with DataGridView
-  Form ^ dialog = gcnew Form();
-  dialog->Text = L"Lacak Pesanan #" + transID;
-  dialog->Size = System::Drawing::Size(500, 350);
-  dialog->StartPosition = FormStartPosition::CenterParent;
-  dialog->FormBorderStyle =
-      System::Windows::Forms::FormBorderStyle::FixedDialog;
-  dialog->MaximizeBox = false;
-  dialog->MinimizeBox = false;
-
-  Label ^ lblStatus = gcnew Label();
-  lblStatus->Text = L"Status saat ini: " + status;
-  lblStatus->Font = gcnew System::Drawing::Font(
-      L"Segoe UI", 12, System::Drawing::FontStyle::Bold);
-  lblStatus->Location = System::Drawing::Point(15, 15);
-  lblStatus->AutoSize = true;
-  dialog->Controls->Add(lblStatus);
-
-  if (tracking->Rows->Count == 0) {
-    Label ^ lblEmpty = gcnew Label();
-    lblEmpty->Text = L"Belum ada data pelacakan untuk pesanan ini.";
-    lblEmpty->Location = System::Drawing::Point(15, 50);
-    lblEmpty->AutoSize = true;
-    dialog->Controls->Add(lblEmpty);
-  } else {
-    DataGridView ^ dgv = gcnew DataGridView();
-    dgv->DataSource = tracking;
-    dgv->Location = System::Drawing::Point(15, 50);
-    dgv->Size = System::Drawing::Size(455, 230);
-    dgv->AllowUserToAddRows = false;
-    dgv->ReadOnly = true;
-    dgv->AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode::Fill;
-    dgv->SelectionMode = DataGridViewSelectionMode::FullRowSelect;
-    dgv->BackgroundColor = System::Drawing::Color::White;
-    dialog->Controls->Add(dgv);
-  }
-
-  Button ^ btnClose = gcnew Button();
-  btnClose->Text = L"Tutup";
-  btnClose->DialogResult = System::Windows::Forms::DialogResult::Cancel;
-  btnClose->Location = System::Drawing::Point(15, 285);
-  btnClose->Size = System::Drawing::Size(100, 30);
-  dialog->Controls->Add(btnClose);
-  dialog->CancelButton = btnClose;
-
-  dialog->ShowDialog();
 }
 
 } // namespace ECommerce

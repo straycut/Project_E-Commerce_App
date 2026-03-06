@@ -57,6 +57,7 @@ public:
   static array<int> ^ GetMerchantStats(int merchantID);
   static DataTable ^ GetAllProductsTable();
   static DataTable ^ GetAllProductsWithMerchantName();
+  static DataTable ^ GetFrequentlyBoughtProducts();
 
   // ============ Customer Functions ============
   static int GetUserSaldo(int userID);
