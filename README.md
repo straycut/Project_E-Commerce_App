@@ -132,7 +132,7 @@ Registrasi → Login
 ### Langkah
 1. Clone repository ini:
    ```bash
-   git clone https://github.com/username/ECommerce.git
+   git clone https://github.com/straycut/Project_E-Commerce_App.git
    ```
 2. Buka file `ECommerce.vcxproj` di Visual Studio
 3. Set konfigurasi ke **Debug** atau **Release** (x64)
